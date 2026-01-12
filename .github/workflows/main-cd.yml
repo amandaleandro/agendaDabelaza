@@ -93,8 +93,7 @@ jobs:
       - name: Build and push Backend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          file: Dockerfile
+          context: backend
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/agendei-backend:${{ steps.bump_version.outputs.nova_versao }}
@@ -105,8 +104,7 @@ jobs:
       - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
-          file: Dockerfile
+          context: frontend
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/agendei-frontend:${{ steps.bump_version.outputs.nova_versao }}
