@@ -1,0 +1,307 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Cliente - pessoa que agenda (pode agendar em múltiplos estabelecimentos)
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String?
+  phone     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  appointments      Appointment[]
+  establishments    UserEstablishment[]
+
+  @@map("users")
+  @@index([email])
+}
+
+// Dono do estabelecimento
+model Owner {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String?
+  googleId  String?  @unique @map("google_id")
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  establishments Establishment[]
+
+  @@map("owners")
+}
+
+// Estabelecimento - salão, clínica, etc
+model Establishment {
+  id                      String   @id @default(cuid())
+  name                    String
+  slug                    String   @unique
+  ownerId                 String   @map("owner_id")
+  primaryColor            String   @default("#3B82F6") @map("primary_color")
+  secondaryColor          String   @default("#1F2937") @map("secondary_color")
+  logoUrl                 String?  @map("logo_url")
+  bannerUrl               String?  @map("banner_url")
+  bio                     String?
+  cnpj                    String?
+  address                 String?
+  phone                   String?
+  depositPercent          Int?     @default(0) @map("deposit_percent")
+  mercadoPagoAccountId    String?  @map("mercadopago_account_id") // ID da conta MP do estabelecimento para receber pagamentos
+  platformFeePercent      Float    @default(10.0) @map("platform_fee_percent") // Taxa da plataforma em % (padrão 10%)
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  owner           Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  professionals   Professional[]
+  services        Service[]
+  schedules       Schedule[]
+  appointments    Appointment[]
+  products        Product[]
+  users           UserEstablishment[]
+  subscriptions   Subscription[]
+
+  @@map("establishments")
+  @@index([ownerId])
+  @@index([slug])
+}
+
+// Vínculo: cliente já agendou em um estabelecimento
+model UserEstablishment {
+  userId            String   @map("user_id")
+  establishmentId   String   @map("establishment_id")
+  firstAppointmentAt DateTime? @map("first_appointment_at")
+  lastAppointmentAt DateTime? @map("last_appointment_at")
+
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  establishment     Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, establishmentId])
+  @@map("user_establishments")
+  @@index([establishmentId])
+}
+
+// Profissional - vinculado a um estabelecimento
+model Professional {
+  id                String   @id @default(cuid())
+  establishmentId   String   @map("establishment_id")
+  name              String
+  email             String
+  phone             String
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  establishment     Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  services          Service[]
+  schedules         Schedule[]
+  products          Product[]
+  appointments      Appointment[]
+
+  @@map("professionals")
+  @@unique([establishmentId, email])
+  @@index([establishmentId])
+}
+
+model Service {
+  id                String   @id @default(cuid())
+  establishmentId   String   @map("establishment_id")
+  professionalId    String   @map("professional_id")
+  name              String
+  description       String
+  price             Float
+  durationMinutes   Int      @map("duration_minutes")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  establishment     Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  professional      Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  appointments      Appointment[]
+
+  @@map("services")
+  @@index([establishmentId])
+  @@index([professionalId])
+}
+
+model Schedule {
+  id                String   @id @default(cuid())
+  establishmentId   String   @map("establishment_id")
+  professionalId    String   @map("professional_id")
+  dayOfWeek         String   @map("day_of_week")
+  startTime         String   @map("start_time")
+  endTime           String   @map("end_time")
+  isAvailable       Boolean  @default(true) @map("is_available")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  establishment     Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  professional      Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@map("schedules")
+  @@index([establishmentId])
+  @@index([professionalId])
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String
+  blocked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("clients")
+}
+
+model Product {
+  id                String   @id @default(cuid())
+  establishmentId   String   @map("establishment_id")
+  professionalId    String   @map("professional_id")
+  name              String
+  description       String
+  price             Float
+  stock             Int
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  establishment     Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  professional      Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  appointmentItems  AppointmentItem[]
+
+  @@map("products")
+  @@index([establishmentId])
+  @@index([professionalId])
+}
+
+model Appointment {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  establishmentId String  @map("establishment_id")
+  professionalId String   @map("professional_id")
+  serviceId      String   @map("service_id")
+  scheduledAt    DateTime @map("scheduled_at")
+  durationMinutes Int      @map("duration_minutes")
+  status         String
+  price          Float
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  establishment  Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  service        Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  items          AppointmentItem[]
+  payment        Payment?
+  refund         Refund?
+
+  @@map("appointments")
+  @@index([userId])
+  @@index([establishmentId])
+  @@index([professionalId, scheduledAt])
+}
+
+model AppointmentItem {
+  id              String   @id @default(cuid())
+  appointmentId   String   @map("appointment_id")
+  productId       String   @map("product_id")
+  quantity        Int
+  price           Float
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  product         Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("appointment_items")
+  @@index([appointmentId])
+  @@index([productId])
+}
+
+model Payment {
+  id                 String   @id @default(cuid())
+  appointmentId      String   @unique @map("appointment_id")
+  amount             Float    // Valor total pago pelo cliente
+  establishmentAmount Float   @map("establishment_amount") // Valor que vai para o estabelecimento
+  platformFee        Float    @default(0) @map("platform_fee") // Taxa da plataforma Agendei
+  type               String   // FULL_PAYMENT, DEPOSIT (depósito antecipado)
+  status             String   // PENDING, PAID, FAILED
+  paymentMethod      String?  @map("payment_method") // PIX, CREDIT_CARD, CASH
+  transactionId      String?  @map("transaction_id") // ID no Mercado Pago
+  pixQrCode          String?  @map("pix_qr_code") // QR Code PIX
+  pixQrCodeBase64    String?  @map("pix_qr_code_base64") // QR Code em base64
+  paymentUrl         String?  @map("payment_url") // URL de pagamento
+  paidAt             DateTime? @map("paid_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  appointment        Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+  @@index([appointmentId])
+  @@index([status])
+  @@index([transactionId])
+}
+
+model Subscription {
+  id                  String   @id
+  ownerId             String   @map("owner_id")
+  establishmentId     String   @map("establishment_id")
+  planType            String   @map("plan_type") // FREE, BASIC, PRO, PREMIUM
+  status              String   // ACTIVE, CANCELLED, PAST_DUE, TRIAL
+  price               Float    @default(0) // Valor mensal da assinatura (0 para FREE)
+  platformFeePercent  Float    @default(10.0) @map("platform_fee_percent") // % de comissão (10% padrão, 0% se plano pago)
+  billingCycle        String   @default("MONTHLY") @map("billing_cycle") // MONTHLY, YEARLY
+  paymentMethod       String?  @map("payment_method") // PIX, CREDIT_CARD
+  mercadoPagoId       String?  @unique @map("mercadopago_id") // ID da assinatura no MP
+  startedAt           DateTime @map("started_at")
+  expiresAt           DateTime? @map("expires_at")
+  nextBillingDate     DateTime? @map("next_billing_date")
+  cancelledAt         DateTime? @map("cancelled_at")
+  trialEndsAt         DateTime? @map("trial_ends_at") // Trial de 14 dias
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  establishment       Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+  @@index([ownerId])
+  @@index([establishmentId])
+  @@index([status])
+}
+
+// Assinatura de cliente em um estabelecimento (ex: pacote mensal)
+// Um cliente pode ter múltiplos planos do mesmo estabelecimento
+model ClientSubscription {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  establishmentId   String   @map("establishment_id")
+  servicePlanId     String?  @map("service_plan_id")  // ID do plano de serviço
+  planName          String   @map("plan_name")
+  totalCredits      Int      @map("total_credits")
+  usedCredits       Int      @default(0) @map("used_credits")
+  status            String   @default("ACTIVE")
+  price             Float    @default(0.0)            // Preço pago
+  startedAt         DateTime @default(now()) @map("started_at")
+  expiresAt         DateTime @map("expires_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@map("client_subscriptions")
+  @@index([userId])
+  @@index([establishmentId])
+  @@index([servicePlanId])
+  @@index([status])
+}
+
+model Refund {
+  id             String   @id @default(cuid())
+  appointmentId  String   @unique @map("appointment_id")
+  amount         Float
+  reason         String   @db.Text
+  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  appointment    Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("refunds")
+  @@index([status])
+}
