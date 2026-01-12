@@ -4,167 +4,183 @@ on:
   workflow_dispatch:
     inputs:
       version_type:
+        description: 'Tipo de versão'
+        required: false
 
-        script: |
-          set -e
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-          echo "🚀 Iniciando deploy da versão 0.0.15"
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
 
-          # Garantir Docker e docker-compose instalados
-          if ! command -v docker >/dev/null 2>&1; then
-            curl -fsSL https://get.docker.com | sh
-          fi
-          if ! command -v docker-compose >/dev/null 2>&1; then
-            sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-            sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose || true
-          fi
-          # Tentar iniciar o serviço do Docker se não estiver rodando
-          if ! pgrep dockerd >/dev/null 2>&1; then
-            sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null || true
-          fi
+            echo "🚀 Iniciando deploy da versão 0.0.15"
 
-          # Adicionar usuário ao grupo docker se necessário
-          if ! groups $USER | grep -q '\bdocker\b'; then
-            sudo usermod -aG docker $USER
-            echo "Usuário $USER adicionado ao grupo docker. Faça logout/login para aplicar."
-          fi
+            # Garantir Docker e docker-compose instalados
+            if ! command -v docker >/dev/null 2>&1; then
+              curl -fsSL https://get.docker.com | sh
+            fi
+            if ! command -v docker-compose >/dev/null 2>&1; then
+              sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+              sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose || true
+            fi
+            # Tentar iniciar o serviço do Docker se não estiver rodando
+            if ! pgrep dockerd >/dev/null 2>&1; then
+              sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null || true
+            fi
 
-          # Criar diretório do projeto se não existir
-          mkdir -p ~/agendei
-          cd ~/agendei
+            # Adicionar usuário ao grupo docker se necessário
+            if ! groups $USER | grep -q '\bdocker\b'; then
+              sudo usermod -aG docker $USER
+              echo "Usuário $USER adicionado ao grupo docker. Faça logout/login para aplicar."
+            fi
 
-          # Login no Docker Hub
-          echo "***" | sudo docker login -u "***" --password-stdin
+            # Criar diretório do projeto se não existir
+            mkdir -p ~/agendei
+            cd ~/agendei
 
-          # Pull das novas imagens
-          echo "📦 Baixando imagens Docker..."
-          sudo docker pull ***/agendei-backend:0.0.15
-          sudo docker pull ***/agendei-frontend:0.0.15
+            # Login no Docker Hub
+            echo "***" | sudo docker login -u "***" --password-stdin
 
-          # Criar/atualizar docker-compose.yml
-          cat > docker-compose.yml << 'EOF'
-          version: '3.8'
+            # Pull das novas imagens
+            echo "📦 Baixando imagens Docker..."
+            sudo docker pull ***/agendei-backend:0.0.15
+            sudo docker pull ***/agendei-frontend:0.0.15
 
-          services:
-            postgres:
-              image: postgres:15-alpine
-              container_name: agendei-postgres
-              restart: always
-              environment:
-                POSTGRES_USER: agendei
-                POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-                POSTGRES_DB: agendei
-              volumes:
-                - postgres_data:/var/lib/postgresql/data
-              networks:
-                - agendei-network
-              healthcheck:
-                test: ["CMD-SHELL", "pg_isready -U agendei"]
-                interval: 10s
-                timeout: 5s
-                retries: 5
+            # Criar/atualizar docker-compose.yml
+            cat > docker-compose.yml << 'EOF'
+            version: '3.8'
 
-            backend:
-              image: ***/agendei-backend:0.0.15
-              container_name: agendei-backend
-              restart: always
-              depends_on:
-                postgres:
-                  condition: service_healthy
-              environment:
-                PORT: 3001
-                DATABASE_URL: postgresql://agendei:${POSTGRES_PASSWORD}@postgres:5432/agendei
-                JWT_SECRET: ${JWT_SECRET}
-                JWT_EXPIRATION: ${JWT_EXPIRATION:-24h}
-                MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN}
-                NODE_ENV: production
-              networks:
-                - agendei-network
-              healthcheck:
-                test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
-                interval: 30s
-                timeout: 10s
-                retries: 3
-                start_period: 40s
+            services:
+              postgres:
+                image: postgres:15-alpine
+                container_name: agendei-postgres
+                restart: always
+                environment:
+                  POSTGRES_USER: agendei
+                  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+                  POSTGRES_DB: agendei
+                volumes:
+                  - postgres_data:/var/lib/postgresql/data
+                networks:
+                  - agendei-network
+                healthcheck:
+                  test: ["CMD-SHELL", "pg_isready -U agendei"]
+                  interval: 10s
+                  timeout: 5s
+                  retries: 5
 
-            frontend:
-              image: ***/agendei-frontend:0.0.15
-              container_name: agendei-frontend
-              restart: always
-              depends_on:
-                - backend
-              environment:
-                NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-              networks:
-                - agendei-network
-              healthcheck:
-                test: ["CMD", "curl", "-f", "http://localhost:3000"]
-                interval: 30s
-                timeout: 10s
-                retries: 3
+              backend:
+                image: ***/agendei-backend:0.0.15
+                container_name: agendei-backend
+                restart: always
+                depends_on:
+                  postgres:
+                    condition: service_healthy
+                environment:
+                  PORT: 3001
+                  DATABASE_URL: postgresql://agendei:${POSTGRES_PASSWORD}@postgres:5432/agendei
+                  JWT_SECRET: ${JWT_SECRET}
+                  JWT_EXPIRATION: ${JWT_EXPIRATION:-24h}
+                  MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN}
+                  NODE_ENV: production
+                networks:
+                  - agendei-network
+                healthcheck:
+                  test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                  start_period: 40s
 
-            nginx:
-              image: nginx:alpine
-              container_name: agendei-nginx
-              restart: always
-              depends_on:
-                - frontend
-                - backend
-              ports:
-                - "80:80"
-                - "443:443"
-              volumes:
-                - ./nginx.conf:/etc/nginx/nginx.conf:ro
-                - ./certbot/conf:/etc/letsencrypt:ro
-                - ./certbot/www:/var/www/certbot:ro
-              networks:
-                - agendei-network
+              frontend:
+                image: ***/agendei-frontend:0.0.15
+                container_name: agendei-frontend
+                restart: always
+                depends_on:
+                  - backend
+                environment:
+                  NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+                networks:
+                  - agendei-network
+                healthcheck:
+                  test: ["CMD", "curl", "-f", "http://localhost:3000"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
 
-          volumes:
-            postgres_data:
+              nginx:
+                image: nginx:alpine
+                container_name: agendei-nginx
+                restart: always
+                depends_on:
+                  - frontend
+                  - backend
+                ports:
+                  - "80:80"
+                  - "443:443"
+                volumes:
+                  - ./nginx.conf:/etc/nginx/nginx.conf:ro
+                  - ./certbot/conf:/etc/letsencrypt:ro
+                  - ./certbot/www:/var/www/certbot:ro
+                networks:
+                  - agendei-network
 
-          networks:
-            agendei-network:
-              driver: bridge
-          EOF
+            volumes:
+              postgres_data:
 
-          # Criar arquivo .env se não existir
-          if [ ! -f .env ]; then
-            echo "⚠️  Criando arquivo .env - CONFIGURE AS VARIÁVEIS!"
-            cat > .env << 'ENVEOF'
-          POSTGRES_PASSWORD=***
-          JWT_SECRET=***
-          JWT_EXPIRATION=24h
-          MERCADOPAGO_ACCESS_TOKEN=***
+            networks:
+              agendei-network:
+                driver: bridge
+            EOF
 
-          NEXT_PUBLIC_API_URL=
-          ENVEOF
-          fi
+            # Criar arquivo .env se não existir
+            if [ ! -f .env ]; then
+              echo "⚠️  Criando arquivo .env - CONFIGURE AS VARIÁVEIS!"
+              cat > .env << 'ENVEOF'
+            POSTGRES_PASSWORD=***
+            JWT_SECRET=***
+            JWT_EXPIRATION=24h
+            MERCADOPAGO_ACCESS_TOKEN=***
 
-          # Parar containers antigos
-          echo "🛑 Parando containers antigos..."
-          sudo docker-compose down || true
+            NEXT_PUBLIC_API_URL=
+            ENVEOF
+            fi
 
-          # Iniciar novos containers
-          echo "🚀 Iniciando novos containers..."
-          sudo docker-compose up -d
+            # Parar containers antigos
+            echo "🛑 Parando containers antigos..."
+            sudo docker-compose down || true
 
-          # Aguardar backend ficar saudável
-          echo "⏳ Aguardando backend inicializar..."
-          sleep 10
+            # Iniciar novos containers
+            echo "🚀 Iniciando novos containers..."
+            sudo docker-compose up -d
 
-          # Executar migrações
-          echo "📊 Executando migrações do banco..."
-          sudo docker exec agendei-backend npx prisma migrate deploy || echo "⚠️  Erro nas migrações - verifique manualmente"
+            # Aguardar backend ficar saudável
+            echo "⏳ Aguardando backend inicializar..."
+            sleep 10
 
-          # Limpar imagens antigas
-          echo "🧹 Limpando imagens antigas..."
-          sudo docker image prune -af --filter "until=72h" || true
+            # Executar migrações
+            echo "📊 Executando migrações do banco..."
+            sudo docker exec agendei-backend npx prisma migrate deploy || echo "⚠️  Erro nas migrações - verifique manualmente"
 
-          echo "✅ Deploy concluído com sucesso!"
-          echo "📊 Status dos containers:"
-          sudo docker-compose ps
+            # Limpar imagens antigas
+            echo "🧹 Limpando imagens antigas..."
+            sudo docker image prune -af --filter "until=72h" || true
+
+            echo "✅ Deploy concluído com sucesso!"
+            echo "📊 Status dos containers:"
+            sudo docker-compose ps
             
             # Login no Docker Hub
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
