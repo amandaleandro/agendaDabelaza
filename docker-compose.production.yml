@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: agendei-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: agendei
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: agendei
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - agendei-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agendei"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: registry.magalu.cloud/${REGISTRY_NAMESPACE}/agendei-backend:${VERSION:-latest}
+    container_name: agendei-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://agendei:${POSTGRES_PASSWORD}@postgres:5432/agendei
+      JWT_SECRET: ${JWT_SECRET}
+      MERCADO_PAGO_ACCESS_TOKEN: ${MERCADO_PAGO_ACCESS_TOKEN}
+      NODE_ENV: production
+    networks:
+      - agendei-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    image: registry.magalu.cloud/${REGISTRY_NAMESPACE}/agendei-frontend:${VERSION:-latest}
+    container_name: agendei-frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: https://${DOMAIN_API}
+      NODE_ENV: production
+    networks:
+      - agendei-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: agendei-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - certbot_data:/var/www/certbot
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - agendei-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: agendei-certbot
+    volumes:
+      - ./ssl:/etc/letsencrypt
+      - certbot_data:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  postgres_data:
+  certbot_data:
+
+networks:
+  agendei-network:
+    driver: bridge
