@@ -140,6 +140,19 @@ jobs:
             set -e
             
             echo "🚀 Iniciando deploy da versão ${{ steps.bump_version.outputs.nova_versao }}"
+
+            # Garantir Docker e docker-compose instalados
+            if ! command -v docker >/dev/null 2>&1; then
+              curl -fsSL https://get.docker.com | sh
+            fi
+            if ! command -v docker-compose >/dev/null 2>&1; then
+              curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              chmod +x /usr/local/bin/docker-compose
+            fi
+            # Tentar iniciar o serviço do Docker se não estiver rodando
+            if ! pgrep dockerd >/dev/null 2>&1; then
+              systemctl start docker 2>/dev/null || service docker start 2>/dev/null || true
+            fi
             
             # Criar diretório do projeto se não existir
             mkdir -p ~/agendei
