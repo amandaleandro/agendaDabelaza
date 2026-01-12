@@ -6,7 +6,6 @@ on:
       version_type:
         description: 'Tipo de versão'
         required: false
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
