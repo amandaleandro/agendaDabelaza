@@ -77,7 +77,7 @@ npm run db:seed
 npm run start:dev
 ```
 
-A API estará disponível em: `http://localhost:3000/api`
+A API estará disponível em: [http://localhost:3000/api](http://localhost:3000/api)
 
 ### 3. Setup Frontend (Opcional)
 
@@ -91,7 +91,7 @@ npm install
 npm run dev
 ```
 
-A interface estará disponível em: `http://localhost:3001`
+A interface estará disponível em: [http://localhost:3001](http://localhost:3001)
 
 ---
 
@@ -282,6 +282,50 @@ FRONTEND_URL=http://localhost:3001
 ```
 
 Veja [.env.example](backend/.env.example) para referência.
+
+---
+
+## 🌐 Acessar o Sistema
+
+### Desenvolvimento Local
+
+Após iniciar os servidores localmente:
+
+| Serviço | URL | Descrição |
+|---------|-----|-----------|
+| **Frontend** | [http://localhost:3001](http://localhost:3001) | Interface do usuário |
+| **Backend API** | [http://localhost:3000/api](http://localhost:3000/api) | API REST |
+| **Health Check** | [http://localhost:3000/api/health](http://localhost:3000/api/health) | Status da API |
+| **Prisma Studio** | [http://localhost:5555](http://localhost:5555) | Gerenciar banco (após `npm run db:studio`) |
+
+### Produção (após deploy)
+
+| Serviço | URL de Acesso | Descrição |
+|---------|---------------|-----------|
+| **Frontend** | `http://SEU_IP_DA_VM` | Interface em produção (porta 80) |
+| **Backend API** | `http://SEU_IP_DA_VM:3001/api` | API em produção (porta 3001) |
+| **Health Check** | `http://SEU_IP_DA_VM:3001/api/health` | Verificar status da API |
+
+**Exemplos com IP real:**
+```
+Frontend:     http://123.45.67.89
+Backend API:  http://123.45.67.89:3001/api
+Health Check: http://123.45.67.89:3001/api/health
+```
+
+**Com domínio configurado (SSL/HTTPS):**
+
+| Serviço | URL de Acesso | Descrição |
+|---------|---------------|-----------|
+| **Frontend** | `https://app.seudominio.com` | Interface com SSL |
+| **Backend API** | `https://api.seudominio.com` | API com SSL |
+| **Health Check** | `https://api.seudominio.com/api/health` | Status da API |
+
+> **💡 Importante:** 
+> - **Sem domínio**: Use `http://IP_DA_VM` para frontend e `http://IP_DA_VM:3001` para backend
+> - **Com domínio**: Configure DNS e SSL conforme [DEPLOY_QUICK_START.md](./DEPLOY_QUICK_START.md)
+> - **Porta 80**: Frontend (automaticamente via nginx)
+> - **Porta 3001**: Backend API (acessar diretamente ou via nginx se configurado)
 
 ---
 
