@@ -68,7 +68,9 @@ jobs:
             set -e
 
             VERSION="${{ steps.version.outputs.version }}"
+            DOMAIN="${{ secrets.DOMAIN || 'agendei.app' }}"
             echo "🚀 Iniciando deploy da versão $VERSION"
+            echo "📍 Domínio: $DOMAIN"
 
             # Garantir Docker e docker-compose instalados
             if ! command -v docker >/dev/null 2>&1; then
@@ -193,7 +195,7 @@ jobs:
               echo "📝 Criando arquivo nginx.conf padrão..."
               # Remover diretório nginx.conf se existir
               [ -d nginx.conf ] && rm -rf nginx.conf
-              cat > nginx.conf << 'NGINX_EOF'
+              cat > nginx.conf << NGINX_EOF
             user nginx;
             worker_processes auto;
             error_log /var/log/nginx/error.log warn;
@@ -229,7 +231,7 @@ jobs:
 
               server {
                 listen 80;
-                server_name _;
+                server_name $DOMAIN 201.23.17.230 _;
 
                 location / {
                   proxy_pass http://frontend;
