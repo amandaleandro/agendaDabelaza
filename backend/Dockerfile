@@ -29,12 +29,14 @@ COPY package*.json ./
 # Install production dependencies only
 RUN npm ci --only=production
 
+# Copy prisma schema from builder FIRST
+COPY --from=builder /app/prisma ./prisma
+
 # Generate Prisma Client for production
 RUN npx prisma generate
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
