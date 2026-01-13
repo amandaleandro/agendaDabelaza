@@ -35,12 +35,12 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
 USER nodejs
 
-# Expose port
-EXPOSE 3000
+# Expose correct API port
+EXPOSE 3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+# Health check on correct port
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=5 \
+  CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Start application
 CMD ["npm", "run", "start:prod"]
