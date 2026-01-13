@@ -17,6 +17,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Debug - Check backend image
+        run: |
+          docker run --rm ${{ secrets.DOCKERHUB_USERNAME }}/agendei-backend:0.0.15 ls -la dist/ || echo "❌ dist folder not found in backend image"
+          docker run --rm ${{ secrets.DOCKERHUB_USERNAME }}/agendei-backend:0.0.15 npm run build || echo "❌ Build failed in backend image"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
