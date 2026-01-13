@@ -25,7 +25,7 @@ import { PrismaSubscriptionRepository } from '../core/infrastructure/database/re
       useClass: PrismaEstablishmentRepository,
     },
     {
-      provide: 'SubscriptionRepository',
+      provide: SubscriptionRepository,
       useClass: PrismaSubscriptionRepository,
     },
   ],
