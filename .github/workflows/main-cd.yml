@@ -154,6 +154,8 @@ jobs:
             # Criar arquivo nginx.conf se não existir
             if [ ! -f nginx.conf ]; then
               echo "📝 Criando arquivo nginx.conf padrão..."
+              # Remover diretório nginx.conf se existir
+              [ -d nginx.conf ] && rm -rf nginx.conf
               cat > nginx.conf << 'NGINX_EOF'
             user nginx;
             worker_processes auto;
