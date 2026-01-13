@@ -1,6 +1,7 @@
+import { Inject } from '@nestjs/common';
 import { Plan } from '../../domain/entities/Plan';
 import { PlanCatalog } from './PlanCatalog';
-import { SubscriptionRepository } from '../../domain/repositories/SubscriptionRepository';
+import type { SubscriptionRepository } from '../../domain/repositories/SubscriptionRepository';
 
 export class PlanResolverService {
   constructor(

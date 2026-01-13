@@ -1,4 +1,5 @@
-import { SubscriptionRepository } from '../../domain/repositories/SubscriptionRepository';
+import { Inject } from '@nestjs/common';
+import type { SubscriptionRepository } from '../../domain/repositories/SubscriptionRepository';
 
 export class CancelSubscriptionUseCase {
   constructor(
