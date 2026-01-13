@@ -1,13 +1,16 @@
 import { randomUUID } from 'crypto';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   Subscription,
   SubscriptionStatus,
 } from '../../domain/entities/Subscription';
-import { SubscriptionRepository } from '../../domain/repositories/SubscriptionRepository';
+import type { SubscriptionRepository } from '../../domain/repositories/SubscriptionRepository';
 import { PlanType } from '../../domain/entities/Plan';
 
+@Injectable()
 export class CreateSubscriptionUseCase {
   constructor(
+    @Inject('SubscriptionRepository')
     private readonly subscriptionRepository: SubscriptionRepository,
   ) {}
 

@@ -5,7 +5,7 @@ import { SignupUseCase } from '../core/application/auth/SignupUseCase';
 import { LoginUseCase } from '../core/application/auth/LoginUseCase';
 import { OwnerRepository } from '../core/domain/repositories/OwnerRepository';
 import { EstablishmentRepository } from '../core/domain/repositories/EstablishmentRepository';
-import { SubscriptionRepository } from '../core/domain/repositories/SubscriptionRepository';
+import type { SubscriptionRepository } from '../core/domain/repositories/SubscriptionRepository';
 import { PrismaOwnerRepository } from '../core/infrastructure/repositories/PrismaOwnerRepository';
 import { PrismaEstablishmentRepository } from '../core/infrastructure/repositories/PrismaEstablishmentRepository';
 import { PrismaSubscriptionRepository } from '../core/infrastructure/database/repositories/PrismaSubscriptionRepository';
@@ -25,7 +25,7 @@ import { PrismaSubscriptionRepository } from '../core/infrastructure/database/re
       useClass: PrismaEstablishmentRepository,
     },
     {
-      provide: SubscriptionRepository,
+      provide: 'SubscriptionRepository',
       useClass: PrismaSubscriptionRepository,
     },
   ],

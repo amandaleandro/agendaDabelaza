@@ -2,6 +2,7 @@ import { SubscriptionRepository } from '../../domain/repositories/SubscriptionRe
 
 export class CancelSubscriptionUseCase {
   constructor(
+    @Inject('SubscriptionRepository')
     private readonly subscriptionRepository: SubscriptionRepository,
   ) {}
 

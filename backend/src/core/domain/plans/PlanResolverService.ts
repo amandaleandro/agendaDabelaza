@@ -4,6 +4,7 @@ import { SubscriptionRepository } from '../../domain/repositories/SubscriptionRe
 
 export class PlanResolverService {
   constructor(
+    @Inject('SubscriptionRepository')
     private readonly subscriptionRepository: SubscriptionRepository,
   ) {}
 

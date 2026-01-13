@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, Inject } from '@nestjs/common';
 import { hash } from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { Owner } from '../../domain/entities/Owner';
@@ -6,7 +6,7 @@ import { Establishment } from '../../domain/entities/Establishment';
 import { Subscription, SubscriptionStatus } from '../../domain/entities/Subscription';
 import { OwnerRepository } from '../../domain/repositories/OwnerRepository';
 import { EstablishmentRepository } from '../../domain/repositories/EstablishmentRepository';
-import { SubscriptionRepository } from '../../domain/repositories/SubscriptionRepository';
+import type { SubscriptionRepository } from '../../domain/repositories/SubscriptionRepository';
 import { PlanType } from '../../domain/entities/Plan';
 
 interface SignupInput {
@@ -28,6 +28,7 @@ export class SignupUseCase {
   constructor(
     private readonly ownerRepository: OwnerRepository,
     private readonly establishmentRepository: EstablishmentRepository,
+    @Inject('SubscriptionRepository')
     private readonly subscriptionRepository: SubscriptionRepository,
   ) {}
 
