@@ -17,10 +17,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Debug - Check backend image
+      - name: Read version
+        id: version
         run: |
-          docker run --rm ${{ secrets.DOCKERHUB_USERNAME }}/agendei-backend:0.0.15 ls -la dist/ || echo "❌ dist folder not found in backend image"
-          docker run --rm ${{ secrets.DOCKERHUB_USERNAME }}/agendei-backend:0.0.15 npm run build || echo "❌ Build failed in backend image"
+          VERSION=$(cat VERSION | tr -d '\n' | tr -d '\r')
+          if [ -z "$VERSION" ]; then echo "VERSION not found" && exit 1; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Using version: $VERSION"
+
+      - name: Docker login
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - name: Build & push backend image
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          docker build -t "$DOCKERHUB_USERNAME/agendei-backend:$VERSION" -f backend/Dockerfile backend
+          docker push "$DOCKERHUB_USERNAME/agendei-backend:$VERSION"
+
+      - name: Build & push frontend image
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          docker build -t "$DOCKERHUB_USERNAME/agendei-frontend:$VERSION" -f frontend/Dockerfile frontend
+          docker push "$DOCKERHUB_USERNAME/agendei-frontend:$VERSION"
+
+      - name: Debug - Check backend image contents
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          docker run --rm ${{ secrets.DOCKERHUB_USERNAME }}/agendei-backend:$VERSION sh -lc "ls -la dist/ && [ -f dist/main.js ] && echo '✅ dist/main.js exists' || (echo '❌ dist/main.js missing' && exit 1)"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -36,7 +67,8 @@ jobs:
           script: |
             set -e
 
-            echo "🚀 Iniciando deploy da versão 0.0.15"
+            VERSION="${{ steps.version.outputs.version }}"
+            echo "🚀 Iniciando deploy da versão $VERSION"
 
             # Garantir Docker e docker-compose instalados
             if ! command -v docker >/dev/null 2>&1; then
@@ -66,8 +98,8 @@ jobs:
 
             # Pull das novas imagens
             echo "📦 Baixando imagens Docker..."
-            sudo docker pull $DOCKERHUB_USERNAME/agendei-backend:0.0.15
-            sudo docker pull $DOCKERHUB_USERNAME/agendei-frontend:0.0.15
+            sudo docker pull $DOCKERHUB_USERNAME/agendei-backend:$VERSION
+            sudo docker pull $DOCKERHUB_USERNAME/agendei-frontend:$VERSION
 
             # Criar/atualizar docker-compose.yml
             cat > docker-compose.yml << EOF
@@ -93,7 +125,7 @@ jobs:
                   retries: 5
 
               backend:
-                image: $DOCKERHUB_USERNAME/agendei-backend:0.0.15
+                image: $DOCKERHUB_USERNAME/agendei-backend:$VERSION
                 container_name: agendei-backend
                 restart: always
                 depends_on:
@@ -116,7 +148,7 @@ jobs:
                   start_period: 40s
 
               frontend:
-                image: $DOCKERHUB_USERNAME/agendei-frontend:0.0.15
+                image: $DOCKERHUB_USERNAME/agendei-frontend:$VERSION
                 container_name: agendei-frontend
                 restart: always
                 depends_on:
@@ -236,7 +268,7 @@ jobs:
 
             # Parar containers antigos
             echo "🛑 Parando containers antigos..."
-            sudo docker-compose down || true
+            sudo docker-compose down --remove-orphans || true
 
             # Iniciar novos containers
             echo "🚀 Iniciando novos containers..."
