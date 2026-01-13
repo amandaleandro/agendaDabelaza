@@ -43,9 +43,14 @@ jobs:
       - name: Build & push frontend image
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || format('http://{0}/api', secrets.DEPLOY_HOST) }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          docker build -t "$DOCKERHUB_USERNAME/agendei-frontend:$VERSION" -f frontend/Dockerfile frontend
+          echo "Building frontend with API_URL: $API_URL"
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL="$API_URL" \
+            -t "$DOCKERHUB_USERNAME/agendei-frontend:$VERSION" \
+            -f frontend/Dockerfile frontend
           docker push "$DOCKERHUB_USERNAME/agendei-frontend:$VERSION"
 
       - name: Deploy via SSH
@@ -251,17 +256,21 @@ jobs:
             NGINX_EOF
             fi
 
-            # Criar arquivo .env se não existir
+            # Criar ou atualizar arquivo .env
             if [ ! -f .env ]; then
-              echo "⚠️  Criando arquivo .env - CONFIGURE AS VARIÁVEIS!"
-              cat > .env << 'ENVEOF'
-            POSTGRES_PASSWORD=***
-            JWT_SECRET=***
+              echo "📝 Criando arquivo .env inicial..."
+              cat > .env << ENVEOF
+            POSTGRES_PASSWORD=$(openssl rand -hex 16)
+            JWT_SECRET=$(openssl rand -hex 32)
             JWT_EXPIRATION=24h
-            MERCADOPAGO_ACCESS_TOKEN=***
-
-            NEXT_PUBLIC_API_URL=
+            MERCADOPAGO_ACCESS_TOKEN=
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || format('http://{0}/api', secrets.DEPLOY_HOST) }}
             ENVEOF
+            else
+              # Garantir que NEXT_PUBLIC_API_URL está definido no .env se estiver vazio
+              if ! grep -q "NEXT_PUBLIC_API_URL=http" .env; then
+                sed -i "s|NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || format('http://{0}/api', secrets.DEPLOY_HOST) }}|" .env
+              fi
             fi
 
             # Parar containers antigos
