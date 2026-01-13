@@ -9,7 +9,7 @@ async function bootstrap() {
   console.log('🔵 NestFactory.create completed');
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://192.168.100.212:3000', 'http://192.168.100.212:3002'],
+    origin: true,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type,Authorization',
