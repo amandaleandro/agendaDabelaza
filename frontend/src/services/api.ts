@@ -29,6 +29,7 @@ export class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      timeout: 30000, // 30 segundos
     });
 
     // Interceptor para adicionar token JWT
