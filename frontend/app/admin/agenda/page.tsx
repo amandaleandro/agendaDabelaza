@@ -137,8 +137,7 @@ export default function AgendaPage() {
   const getAppointmentsForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     return appointments.filter(apt => {
-      // Support both old and new date formats
-      const aptDate = apt.date || (apt.scheduledAt ? new Date(apt.scheduledAt).toISOString().split('T')[0] : null);
+      const aptDate = apt.scheduledAt ? new Date(apt.scheduledAt).toISOString().split('T')[0] : null;
       const matchesDate = aptDate === dateStr;
       const matchesProfessional = !filterProfessional || apt.professionalId === filterProfessional;
       return matchesDate && matchesProfessional;
