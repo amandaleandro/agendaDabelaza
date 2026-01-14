@@ -1,7 +1,7 @@
 import { AppointmentRepository } from '../../../domain/repositories/AppointmentRepository';
 import { PrismaService } from '../prisma/PrismaService';
 import { Appointment } from '../../../domain/entities/Appointment';
-import { AppointmentStatus } from 'src/core/domain/enums/AppointmentStatus';
+import { AppointmentStatus } from '../../../domain/enums/AppointmentStatus';
 
 export class PrismaAppointmentRepository implements AppointmentRepository {
   constructor(private readonly prisma: PrismaService) {}
