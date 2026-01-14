@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Users, 
   Search, 
@@ -15,7 +16,10 @@ import {
   Ban,
   CheckCircle,
   Crown,
-  Building2
+  Building2,
+  X,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { ApiClient } from '@/services/api';
 
@@ -29,14 +33,20 @@ interface User {
   createdAt: string;
   role?: 'admin' | 'owner' | 'professional' | 'client';
   status?: 'active' | 'inactive' | 'suspended';
-  establishmentCount?: number;
+  blocked?: boolean;
+  establishments?: any[];
 }
 
 export default function UsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showMenu, setShowMenu] = useState<string | null>(null);
+  const [blocking, setBlocking] = useState<string | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -44,7 +54,7 @@ export default function UsersPage() {
 
   const loadUsers = async () => {
     try {
-      // Buscar clientes
+      // Buscar clientes com estabelecimentos
       const clients = await api.listClients();
       const professionals = await api.listProfessionals();
       
@@ -56,7 +66,9 @@ export default function UsersPage() {
           phone: c.phone,
           createdAt: c.createdAt,
           role: 'client' as const,
-          status: 'active' as const
+          status: c.blocked ? 'suspended' : 'active',
+          blocked: c.blocked || false,
+          establishments: []
         })),
         ...professionals.map(p => ({
           id: p.id,
@@ -65,7 +77,9 @@ export default function UsersPage() {
           phone: p.phone,
           createdAt: p.createdAt,
           role: 'professional' as const,
-          status: 'active' as const
+          status: 'active' as const,
+          blocked: false,
+          establishments: []
         }))
       ];
 
@@ -74,6 +88,39 @@ export default function UsersPage() {
       console.error('Erro ao carregar usuários:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleViewDetails = async (user: User) => {
+    setSelectedUser(user);
+    setShowModal(true);
+    setShowMenu(null);
+  };
+
+  const handleBlockUser = async (userId: string, shouldBlock: boolean) => {
+    setBlocking(userId);
+    try {
+      // Chamar API para bloquear/desbloquear
+      if (selectedUser?.role === 'client') {
+        await api.setClientBlocked(userId, shouldBlock);
+      }
+      
+      // Atualizar lista
+      await loadUsers();
+      
+      if (selectedUser?.id === userId) {
+        setSelectedUser({
+          ...selectedUser,
+          blocked: shouldBlock,
+          status: shouldBlock ? 'suspended' : 'active'
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao bloquear usuário:', error);
+      alert('Erro ao bloquear usuário');
+    } finally {
+      setBlocking(null);
+      setShowMenu(null);
     }
   };
 
@@ -303,19 +350,47 @@ export default function UsersPage() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 relative">
                           <button
+                            onClick={() => handleViewDetails(user)}
                             className="p-2 hover:bg-slate-700 rounded-lg transition-colors text-blue-400"
                             title="Ver detalhes"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            className="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400"
-                            title="Mais opções"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowMenu(showMenu === user.id ? null : user.id)}
+                              className="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400"
+                              title="Mais opções"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                            
+                            {showMenu === user.id && (
+                              <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10">
+                                {user.role === 'client' && (
+                                  <button
+                                    onClick={() => handleBlockUser(user.id, !user.blocked)}
+                                    disabled={blocking === user.id}
+                                    className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors flex items-center gap-2 text-sm first:rounded-t-lg"
+                                  >
+                                    {user.blocked ? (
+                                      <>
+                                        <Unlock className="w-4 h-4 text-emerald-400" />
+                                        <span>Desbloquear Usuário</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Lock className="w-4 h-4 text-red-400" />
+                                        <span>Bloquear Usuário</span>
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -327,5 +402,141 @@ export default function UsersPage() {
         </div>
       </div>
     </div>
-  );
-}
+
+    {/* Modal de Detalhes */}
+    {showModal && selectedUser && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          {/* Modal Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-slate-800 to-slate-900 p-6 border-b border-slate-700 flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white">Detalhes do Usuário</h2>
+            <button
+              onClick={() => {
+                setShowModal(false);
+                setSelectedUser(null);
+              }}
+              className="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Modal Body */}
+          <div className="p-6 space-y-6">
+            {/* User Info */}
+            <div className="flex items-start gap-4">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-bold">
+                {selectedUser.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold text-white">{selectedUser.name}</h3>
+                <p className="text-slate-400">{selectedUser.email}</p>
+                {selectedUser.phone && <p className="text-slate-400">{selectedUser.phone}</p>}
+              </div>
+            </div>
+
+            {/* Status Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-700">
+                <p className="text-xs text-slate-400 mb-1">Perfil</p>
+                <p className="text-lg font-bold text-white">{roleConfig[selectedUser.role || 'client'].label}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-700">
+                <p className="text-xs text-slate-400 mb-1">Status</p>
+                <p className={`text-lg font-bold ${selectedUser.blocked ? 'text-red-400' : 'text-emerald-400'}`}>
+                  {selectedUser.blocked ? 'Bloqueado' : 'Ativo'}
+                </p>
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-700">
+              <h4 className="text-sm font-semibold text-slate-300 mb-3">Informações de Contato</h4>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Mail className="w-4 h-4 text-slate-400" />
+                  <span className="text-slate-300">{selectedUser.email}</span>
+                </div>
+                {selectedUser.phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-300">{selectedUser.phone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <span className="text-slate-300">
+                    Cadastro: {new Date(selectedUser.createdAt).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Establishments */}
+            {selectedUser.role === 'client' && selectedUser.establishments && selectedUser.establishments.length > 0 && (
+              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-700">
+                <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Estabelecimentos
+                </h4>
+                <div className="space-y-2">
+                  {selectedUser.establishments.map((est: any) => (
+                    <div key={est.id} className="p-3 rounded bg-slate-800/50 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-white">{est.name}</p>
+                        <p className="text-xs text-slate-400">{est.slug}</p>
+                      </div>
+                      {est.blocked && (
+                        <span className="px-2 py-1 rounded text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
+                          Bloqueado
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4 border-t border-slate-700">
+              {selectedUser.role === 'client' && (
+                <button
+                  onClick={() => handleBlockUser(selectedUser.id, !selectedUser.blocked)}
+                  disabled={blocking === selectedUser.id}
+                  className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
+                    selectedUser.blocked
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                      : 'bg-red-600 hover:bg-red-500 text-white'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {blocking === selectedUser.id ? (
+                    <>Processando...</>
+                  ) : selectedUser.blocked ? (
+                    <>
+                      <Unlock className="w-4 h-4" />
+                      Desbloquear Usuário
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      Bloquear Usuário
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setSelectedUser(null);
+                }}
+                className="flex-1 px-4 py-3 rounded-lg font-semibold bg-slate-700 hover:bg-slate-600 text-white transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+};
