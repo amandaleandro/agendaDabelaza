@@ -314,6 +314,42 @@ export class ApiClient {
     });
     return response.data;
   }
-}
 
-export const apiClient = new ApiClient();
+  // ========== UPLOADS ==========
+
+  async uploadImage(file: File): Promise<{ url: string; publicId: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await this.client.post('/uploads/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  async uploadLogo(file: File): Promise<{ url: string; publicId: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await this.client.post('/uploads/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  async uploadBanner(file: File): Promise<{ url: string; publicId: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await this.client.post('/uploads/banner', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  async uploadGallery(files: File[]): Promise<Array<{ url: string; publicId: string }>> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    const response = await this.client.post('/uploads/gallery', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.images;
+  }
+}

@@ -21,7 +21,7 @@ export class EstablishmentController {
       ownerId: establishment.ownerId,
       primaryColor: establishment.primaryColor,
       secondaryColor: establishment.secondaryColor,
-      accentColor: establishment.accentColor,
+      accentColor: (establishment as any).accentColor,
       bio: establishment.bio,
       createdAt: establishment.createdAt?.toISOString(),
     }));
