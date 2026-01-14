@@ -2,7 +2,7 @@ import { PlanType } from './Plan';
 
 export enum SubscriptionStatus {
   ACTIVE = 'ACTIVE',
-  CANCELED = 'CANCELED',
+  CANCELLED = 'CANCELLED',
   PAST_DUE = 'PAST_DUE',
 }
 
@@ -19,10 +19,10 @@ export class Subscription {
 
   cancel(): void {
     if (this.status !== SubscriptionStatus.ACTIVE) {
-      throw new Error('Only active subscriptions can be canceled');
+      throw new Error('Only active subscriptions can be cancelled');
     }
 
-    this.status = SubscriptionStatus.CANCELED;
+    this.status = SubscriptionStatus.CANCELLED;
     this.expiresAt = new Date();
   }
 

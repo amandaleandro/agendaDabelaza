@@ -23,7 +23,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
       status: data.status as AppointmentStatus,
       price: data.price,
       createdAt: data.createdAt,
-      durationMinutes: 0,
+      durationMinutes: data.durationMinutes,
     });
   }
 
