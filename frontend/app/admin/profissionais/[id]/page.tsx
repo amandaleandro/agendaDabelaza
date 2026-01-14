@@ -137,7 +137,7 @@ export default function ProfessionalDetailPage() {
     return sum + (service?.price || 0);
   }, 0);
   const avgRating = (4 + Math.random()).toFixed(1);
-  const uniqueClients = new Set(appointments.map(apt => apt.clientId)).size;
+  const uniqueClients = new Set(appointments.map(apt => apt.userId)).size;
 
   // Recent appointments
   const recentAppointments = appointments
