@@ -1,12 +1,20 @@
 import { create } from 'zustand';
 
+interface Establishment {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface AuthState {
   token: string | null;
   user: any | null;
+  establishment: Establishment | null;
   isAuthenticated: boolean;
   setToken: (token: string) => void;
   setUser: (user: any) => void;
-  login: (token: string, user: any) => void;
+  setEstablishment: (est: Establishment | null) => void;
+  login: (token: string, user: any, establishment?: Establishment) => void;
   logout: () => void;
   loadFromStorage: () => void;
 }
@@ -14,6 +22,7 @@ export interface AuthState {
 export const useAuth = create<AuthState>((set) => ({
   token: null,
   user: null,
+  establishment: null,
   isAuthenticated: false,
 
   setToken: (token: string) => {
@@ -30,12 +39,26 @@ export const useAuth = create<AuthState>((set) => ({
     set({ user });
   },
 
-  login: (token: string, user: any) => {
+  setEstablishment: (est: Establishment | null) => {
+    if (typeof window !== 'undefined') {
+      if (est) {
+        localStorage.setItem('establishment', JSON.stringify(est));
+      } else {
+        localStorage.removeItem('establishment');
+      }
+    }
+    set({ establishment: est });
+  },
+
+  login: (token: string, user: any, establishment?: Establishment) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      if (establishment) {
+        localStorage.setItem('establishment', JSON.stringify(establishment));
+      }
     }
-    set({ token, user, isAuthenticated: true });
+    set({ token, user, establishment: establishment ?? null, isAuthenticated: true });
   },
 
   logout: () => {
@@ -43,13 +66,14 @@ export const useAuth = create<AuthState>((set) => ({
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
-    set({ token: null, user: null, isAuthenticated: false });
+    set({ token: null, user: null, establishment: null, isAuthenticated: false });
   },
 
   loadFromStorage: () => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('user');
+      const estStr = localStorage.getItem('establishment');
       
       let user = null;
       if (userStr && userStr !== 'undefined' && userStr !== 'null') {
@@ -60,8 +84,17 @@ export const useAuth = create<AuthState>((set) => ({
           user = null;
         }
       }
+      let establishment: Establishment | null = null;
+      if (estStr && estStr !== 'undefined' && estStr !== 'null') {
+        try {
+          establishment = JSON.parse(estStr);
+        } catch (e) {
+          console.error('Erro ao parsear establishment do localStorage:', e);
+          establishment = null;
+        }
+      }
       
-      set({ token, user, isAuthenticated: !!token });
+      set({ token, user, establishment, isAuthenticated: !!token });
     }
   },
 }));

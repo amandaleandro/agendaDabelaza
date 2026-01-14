@@ -14,7 +14,7 @@ const apiClient = new ApiClient();
 
 export default function AppointmentsPage() {
   const router = useRouter();
-  const { isAuthenticated, loadFromStorage, user } = useAuth();
+  const { isAuthenticated, loadFromStorage, user, establishment } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [professionalMap, setProfessionalMap] = useState<Record<string, Professional>>({});
@@ -156,8 +156,27 @@ export default function AppointmentsPage() {
     try {
       setSubmitting(true);
       const depositPercent = form.depositPercent ? Number(form.depositPercent) : undefined;
+      
+      // Obter establishmentId do establishment ou tentar buscar do localStorage
+      let establishmentId = establishment?.id;
+      if (!establishmentId) {
+        const storedSlug = typeof window !== 'undefined' ? localStorage.getItem('establishmentSlug') : null;
+        if (storedSlug) {
+          // Buscar establishment pelo slug se necessário
+          const establishments = await apiClient.listEstablishments();
+          const found = establishments.find(e => e.slug === storedSlug);
+          establishmentId = found?.id;
+        }
+      }
+      
+      if (!establishmentId) {
+        setError('Estabelecimento não identificado. Faça login novamente.');
+        return;
+      }
+      
       const created = await apiClient.createAppointment({
-        clientId: user.id,
+        userId: user.id,
+        establishmentId,
         professionalId: form.professionalId,
         serviceId: form.serviceId,
         scheduledAt: scheduledAtIso,
