@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Crown, Sparkles, ArrowUpRight, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/config/api';
 
 interface SubscriptionWidgetProps {
   establishmentId: string;
@@ -19,7 +20,7 @@ export default function SubscriptionWidget({ establishmentId }: SubscriptionWidg
   const loadPlan = async () => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/subscriptions/establishment/${establishmentId}`
+        `${API_BASE_URL}/subscriptions/establishment/${establishmentId}`
       );
       if (response.ok) {
         const data = await response.json();

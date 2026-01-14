@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { API_BASE_URL } from '@/config/api';
 
 interface UseEstablishmentThemeParams {
   slug?: string | null;
@@ -96,7 +97,7 @@ export function useEstablishmentTheme({
 
     const fetchColors = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/public/establishments/${resolvedSlug}`);
+        const res = await fetch(`${API_BASE_URL}/public/establishments/${resolvedSlug}`);
         if (!res.ok) return;
         const data = (await res.json()) as EstablishmentResponse;
         if (data?.primaryColor) setPrimary(data.primaryColor);
