@@ -5,31 +5,37 @@ interface UseEstablishmentThemeParams {
   slug?: string | null;
   initialPrimary?: string | null;
   initialSecondary?: string | null;
+  initialAccent?: string | null;
   persistSlug?: boolean;
   fallbackToStoredSlug?: boolean;
   fetchIfMissing?: boolean;
   defaultPrimary?: string;
   defaultSecondary?: string;
+  defaultAccent?: string;
 }
 
 interface EstablishmentResponse {
   primaryColor?: string | null;
   secondaryColor?: string | null;
+  accentColor?: string | null;
 }
 
 export function useEstablishmentTheme({
   slug,
   initialPrimary,
   initialSecondary,
+  initialAccent,
   persistSlug = false,
   fallbackToStoredSlug = false,
   fetchIfMissing = true,
-  defaultPrimary = '#7c3aed',
-  defaultSecondary = '#2563eb',
+  defaultPrimary = '#6366f1',
+  defaultSecondary = '#8b5cf6',
+  defaultAccent = '#ec4899',
 }: UseEstablishmentThemeParams) {
   const [resolvedSlug, setResolvedSlug] = useState<string | null>(slug ?? null);
   const [primary, setPrimary] = useState<string>(initialPrimary || defaultPrimary);
   const [secondary, setSecondary] = useState<string>(initialSecondary || defaultSecondary);
+  const [accent, setAccent] = useState<string>(initialAccent || defaultAccent);
   const [hasFetched, setHasFetched] = useState(false);
 
   // Helper to convert hex to rgba
@@ -84,6 +90,10 @@ export function useEstablishmentTheme({
     if (initialSecondary) setSecondary(initialSecondary);
   }, [initialSecondary]);
 
+  useEffect(() => {
+    if (initialAccent) setAccent(initialAccent);
+  }, [initialAccent]);
+
   // Fetch colors if missing
   useEffect(() => {
     const shouldFetch =
@@ -91,7 +101,8 @@ export function useEstablishmentTheme({
       !hasFetched &&
       resolvedSlug &&
       !initialPrimary &&
-      !initialSecondary;
+      !initialSecondary &&
+      !initialAccent;
 
     if (!shouldFetch) return;
 
@@ -102,6 +113,7 @@ export function useEstablishmentTheme({
         const data = (await res.json()) as EstablishmentResponse;
         if (data?.primaryColor) setPrimary(data.primaryColor);
         if (data?.secondaryColor) setSecondary(data.secondaryColor);
+        if (data?.accentColor) setAccent(data.accentColor);
       } catch {
         // ignore fetch errors, keep defaults
       } finally {
@@ -110,15 +122,17 @@ export function useEstablishmentTheme({
     };
 
     fetchColors();
-  }, [fetchIfMissing, hasFetched, initialPrimary, initialSecondary, resolvedSlug]);
+  }, [fetchIfMissing, hasFetched, initialPrimary, initialSecondary, initialAccent, resolvedSlug]);
 
   return {
     resolvedSlug,
     primary,
     secondary,
+    accent,
     hexToRgba,
     gradient,
     setPrimary,
     setSecondary,
+    setAccent,
   };
 }

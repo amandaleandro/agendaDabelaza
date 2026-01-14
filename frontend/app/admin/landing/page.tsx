@@ -194,15 +194,38 @@ export default function AdminLandingPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Salvar no banco via API
+      const response = await fetch(`${API_BASE_URL}/establishments/${establishmentId}/landing-config`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: config.branding.businessName,
+          bio: config.branding.description,
+          primaryColor: config.colors.primary,
+          secondaryColor: config.colors.secondary,
+          accentColor: config.colors.accent,
+          logoUrl: config.branding.logo,
+          bannerUrl: config.branding.coverImage,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar configurações');
+      }
+
+      // Manter localStorage como backup para preview offline
       if (establishmentSlug) {
         localStorage.setItem(getStorageKey(establishmentSlug), JSON.stringify(config));
       }
-      // TODO: Chamar endpoint PUT /establishments/:id/landing-config
-      console.log('Configurações salvas:', config);
+      
+      console.log('Configurações salvas no banco:', config);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error('Erro ao salvar:', err);
+      alert('Erro ao salvar configurações. Tente novamente.');
     } finally {
       setSaving(false);
     }

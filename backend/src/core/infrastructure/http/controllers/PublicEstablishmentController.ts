@@ -22,6 +22,7 @@ export class PublicEstablishmentController {
         ownerId: true,
         primaryColor: true,
         secondaryColor: true,
+        accentColor: true,
         logoUrl: true,
         bannerUrl: true,
         bio: true,

@@ -46,6 +46,7 @@ model Establishment {
   ownerId                 String   @map("owner_id")
   primaryColor            String   @default("#3B82F6") @map("primary_color")
   secondaryColor          String   @default("#1F2937") @map("secondary_color")
+  accentColor             String   @default("#EC4899") @map("accent_color")
   logoUrl                 String?  @map("logo_url")
   bannerUrl               String?  @map("banner_url")
   bio                     String?

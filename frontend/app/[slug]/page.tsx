@@ -17,6 +17,7 @@ interface Establishment {
   address?: string;
   primaryColor?: string;
   secondaryColor?: string;
+  accentColor?: string;
 }
 
 interface Service {
@@ -46,7 +47,7 @@ export default function LandingPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Carregar estabelecimento
+        // Carregar estabelecimento do backend (fonte única da verdade)
         const estResponse = await fetch(`${API_BASE_URL}/public/establishments/${slug}`);
         if (!estResponse.ok) {
           setError('Estabelecimento não encontrado');
@@ -54,25 +55,7 @@ export default function LandingPage() {
         }
         const estData = await estResponse.json();
 
-        // Merge com config salva em localStorage (preview offline da landing)
-        let mergedEst = estData;
-        try {
-          const saved = localStorage.getItem(`landing_config_${slug}`);
-          if (saved) {
-            const cfg = JSON.parse(saved);
-            mergedEst = {
-              ...estData,
-              name: cfg?.branding?.businessName || estData.name,
-              bio: cfg?.branding?.description || estData.bio,
-              primaryColor: cfg?.colors?.primary || estData.primaryColor,
-              secondaryColor: cfg?.colors?.secondary || estData.secondaryColor,
-            };
-          }
-        } catch (err) {
-          console.warn('Falha ao aplicar config local da landing:', err);
-        }
-
-        setEstablishment(mergedEst);
+        setEstablishment(estData);
 
         // Carregar serviços
         const srvResponse = await fetch(`${API_BASE_URL}/public/establishments/${slug}/services`);
@@ -98,12 +81,13 @@ export default function LandingPage() {
     loadData();
   }, [slug]);
 
-  const { primary, secondary, hexToRgba } = useEstablishmentTheme({
+  const { primary, secondary, accent, hexToRgba } = useEstablishmentTheme({
     slug,
     initialPrimary: establishment?.primaryColor,
     initialSecondary: establishment?.secondaryColor,
+    initialAccent: establishment?.accentColor,
     persistSlug: true,
-    fetchIfMissing: !establishment?.primaryColor || !establishment?.secondaryColor,
+    fetchIfMissing: !establishment?.primaryColor || !establishment?.secondaryColor || !establishment?.accentColor,
   });
 
   if (loading) {
