@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Settings, 
   Save,
@@ -15,50 +15,48 @@ import {
   Zap,
   AlertTriangle,
   CheckCircle,
-  Info
+  Info,
+  Loader
 } from 'lucide-react';
+import { ApiClient } from '@/services/api';
+
+const api = new ApiClient();
 
 export default function ConfiguracoesPage() {
   const [saving, setSaving] = useState(false);
-  const [config, setConfig] = useState({
-    // Sistema
-    siteName: 'Agendei',
-    siteUrl: 'https://agendei.com.br',
-    supportEmail: 'suporte@agendei.com.br',
-    maintenanceMode: false,
-    
-    // Notificações
-    emailNotifications: true,
-    smsNotifications: false,
-    pushNotifications: true,
-    
-    // Segurança
-    twoFactorAuth: true,
-    sessionTimeout: 30,
-    maxLoginAttempts: 5,
-    
-    // Assinaturas
-    freePlanEnabled: true,
-    proPlanPrice: 99.90,
-    enterprisePlanPrice: 299.90,
-    trialDays: 14,
-    
-    // Stripe
-    stripePublicKey: 'pk_test_...',
-    stripeWebhookSecret: 'whsec_...',
-    
-    // Features
-    allowPublicSignup: true,
-    requireEmailVerification: true,
-    enableAnalytics: true,
-    enableChat: false
-  });
+  const [loading, setLoading] = useState(true);
+  const [platformSettings, setPlatformSettings] = useState<any>(null);
+  const [systemSettings, setSystemSettings] = useState<any>(null);
+  const [emailSettings, setEmailSettings] = useState<any>(null);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const [platform, system, email] = await Promise.all([
+        api.getPlatformSettings(),
+        api.getSystemSettings(),
+        api.getEmailSettings(),
+      ]);
+      
+      setPlatformSettings(platform);
+      setSystemSettings(system);
+      setEmailSettings(email);
+    } catch (error) {
+      console.error('Erro ao carregar configurações:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Simular salvamento
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await api.updatePlatformSettings({
+        ...platformSettings,
+      });
       alert('Configurações salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -67,6 +65,17 @@ export default function ConfiguracoesPage() {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Loader className="w-12 h-12 animate-spin text-slate-400 mx-auto mb-4" />
+          <p className="text-slate-400">Carregando configurações...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -102,7 +111,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Maintenance Mode Alert */}
-      {config.maintenanceMode && (
+      {platformSettings?.features?.maintenanceMode && (
         <div className="rounded-xl border border-amber-800 bg-amber-500/10 p-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
           <div>
@@ -129,8 +138,8 @@ export default function ConfiguracoesPage() {
               </label>
               <input
                 type="text"
-                value={config.siteName}
-                onChange={(e) => setConfig({...config, siteName: e.target.value})}
+                value={platformSettings?.siteName || ''}
+                onChange={(e) => setPlatformSettings({...platformSettings, siteName: e.target.value})}
                 className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
@@ -141,10 +150,11 @@ export default function ConfiguracoesPage() {
               </label>
               <input
                 type="url"
-                value={config.siteUrl}
-                onChange={(e) => setConfig({...config, siteUrl: e.target.value})}
-                className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                value={platformSettings?.siteUrl || ''}
+                disabled
+                className="w-full bg-slate-900 border border-slate-700 text-slate-500 px-4 py-3 rounded-xl cursor-not-allowed"
               />
+              <p className="text-xs text-slate-500 mt-1">Configurado automaticamente</p>
             </div>
 
             <div>
@@ -153,306 +163,104 @@ export default function ConfiguracoesPage() {
               </label>
               <input
                 type="email"
-                value={config.supportEmail}
-                onChange={(e) => setConfig({...config, supportEmail: e.target.value})}
+                value={platformSettings?.supportEmail || ''}
+                onChange={(e) => setPlatformSettings({...platformSettings, supportEmail: e.target.value})}
                 className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
-
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">Modo de Manutenção</p>
-                <p className="text-xs text-slate-400">Bloquear acesso ao sistema</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.maintenanceMode}
-                  onChange={(e) => setConfig({...config, maintenanceMode: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-              </label>
-            </div>
           </div>
         </div>
 
-        {/* Notificações */}
+        {/* Informações do Sistema */}
         <div className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6">
           <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-            <Bell className="w-5 h-5 text-purple-400" />
-            Notificações
+            <Database className="w-5 h-5 text-emerald-400" />
+            Informações do Sistema
           </h3>
           
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">Email</p>
-                <p className="text-xs text-slate-400">Notificações por email</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.emailNotifications}
-                  onChange={(e) => setConfig({...config, emailNotifications: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-              </label>
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-sm text-slate-400 mb-1">Versão</p>
+              <p className="text-xl font-bold text-white">{systemSettings?.version || 'N/A'}</p>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">SMS</p>
-                <p className="text-xs text-slate-400">Notificações por SMS</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.smsNotifications}
-                  onChange={(e) => setConfig({...config, smsNotifications: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-              </label>
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-sm text-slate-400 mb-1">Ambiente</p>
+              <p className="text-xl font-bold text-white uppercase">{systemSettings?.environment || 'N/A'}</p>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">Push</p>
-                <p className="text-xs text-slate-400">Notificações push no navegador</p>
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-sm text-slate-400 mb-1">Banco de Dados</p>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <p className="text-white font-semibold">{systemSettings?.database?.type || 'PostgreSQL'}</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.pushNotifications}
-                  onChange={(e) => setConfig({...config, pushNotifications: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-              </label>
             </div>
           </div>
         </div>
 
-        {/* Segurança */}
-        <div className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6">
-          <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-red-400" />
-            Segurança
-          </h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">Autenticação 2FA</p>
-                <p className="text-xs text-slate-400">Exigir verificação em duas etapas</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.twoFactorAuth}
-                  onChange={(e) => setConfig({...config, twoFactorAuth: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-              </label>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Timeout de Sessão (minutos)
-              </label>
-              <input
-                type="number"
-                value={config.sessionTimeout}
-                onChange={(e) => setConfig({...config, sessionTimeout: parseInt(e.target.value)})}
-                className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-red-500 transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Máx. Tentativas de Login
-              </label>
-              <input
-                type="number"
-                value={config.maxLoginAttempts}
-                onChange={(e) => setConfig({...config, maxLoginAttempts: parseInt(e.target.value)})}
-                className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-red-500 transition-colors"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Planos e Preços */}
-        <div className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6">
-          <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-            <Palette className="w-5 h-5 text-purple-400" />
-            Planos e Preços
-          </h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">Plano FREE</p>
-                <p className="text-xs text-slate-400">Permitir cadastros gratuitos</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.freePlanEnabled}
-                  onChange={(e) => setConfig({...config, freePlanEnabled: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-              </label>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Preço Plano PRO (R$)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={config.proPlanPrice}
-                onChange={(e) => setConfig({...config, proPlanPrice: parseFloat(e.target.value)})}
-                className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Preço Plano ENTERPRISE (R$)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={config.enterprisePlanPrice}
-                onChange={(e) => setConfig({...config, enterprisePlanPrice: parseFloat(e.target.value)})}
-                className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Dias de Trial Gratuito
-              </label>
-              <input
-                type="number"
-                value={config.trialDays}
-                onChange={(e) => setConfig({...config, trialDays: parseInt(e.target.value)})}
-                className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Stripe Config */}
+        {/* Email Configuration */}
         <div className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6 lg:col-span-2">
           <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-            <Key className="w-5 h-5 text-emerald-400" />
-            Configurações Stripe
+            <Mail className="w-5 h-5 text-purple-400" />
+            Configuração de Email
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Public Key
-              </label>
-              <input
-                type="text"
-                value={config.stripePublicKey}
-                onChange={(e) => setConfig({...config, stripePublicKey: e.target.value})}
-                className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors font-mono text-sm"
-              />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-sm text-slate-400 mb-1">Provedor</p>
+              <p className="text-lg font-bold text-white uppercase">{emailSettings?.provider || 'SENDGRID'}</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Webhook Secret
-              </label>
-              <input
-                type="password"
-                value={config.stripeWebhookSecret}
-                onChange={(e) => setConfig({...config, stripeWebhookSecret: e.target.value})}
-                className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors font-mono text-sm"
-              />
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-sm text-slate-400 mb-1">Email Remetente</p>
+              <p className="text-sm text-white break-all">{emailSettings?.fromEmail || 'N/A'}</p>
+            </div>
+
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-sm text-slate-400 mb-1">Status</p>
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${emailSettings?.enabled ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                <p className="text-white font-semibold">{emailSettings?.enabled ? 'Conectado' : 'Desconectado'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 p-4 bg-slate-800/50 rounded-lg">
+            <p className="text-sm font-semibold text-slate-300 mb-3">Templates Disponíveis:</p>
+            <div className="flex flex-wrap gap-2">
+              {emailSettings?.templates && Object.entries(emailSettings.templates).map(([key, enabled]: [string, any]) => (
+                <span key={key} className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  enabled ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700/50 text-slate-500'
+                }`}>
+                  {key}
+                </span>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Features */}
+        {/* Platform Statistics */}
         <div className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6 lg:col-span-2">
           <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-            <Code className="w-5 h-5 text-blue-400" />
-            Funcionalidades
+            <Info className="w-5 h-5 text-blue-400" />
+            Estatísticas da Plataforma
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">Cadastro Público</p>
-                <p className="text-xs text-slate-400">Permitir novos cadastros sem convite</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.allowPublicSignup}
-                  onChange={(e) => setConfig({...config, allowPublicSignup: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-sm text-slate-400 mb-2">Estabelecimentos</p>
+              <p className="text-3xl font-bold text-white">{systemSettings?.statistics?.totalEstablishments || 0}</p>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">Verificação de Email</p>
-                <p className="text-xs text-slate-400">Exigir confirmação de email</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.requireEmailVerification}
-                  onChange={(e) => setConfig({...config, requireEmailVerification: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-sm text-slate-400 mb-2">Usuários</p>
+              <p className="text-3xl font-bold text-white">{systemSettings?.statistics?.totalUsers || 0}</p>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">Analytics</p>
-                <p className="text-xs text-slate-400">Rastreamento e análise de dados</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.enableAnalytics}
-                  onChange={(e) => setConfig({...config, enableAnalytics: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-              <div>
-                <p className="font-semibold text-white">Chat de Suporte</p>
-                <p className="text-xs text-slate-400">Widget de chat ao vivo</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.enableChat}
-                  onChange={(e) => setConfig({...config, enableChat: e.target.checked})}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="text-sm text-slate-400 mb-2">Agendamentos</p>
+              <p className="text-3xl font-bold text-white">{systemSettings?.statistics?.totalAppointments || 0}</p>
             </div>
           </div>
         </div>

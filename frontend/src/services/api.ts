@@ -315,6 +315,78 @@ export class ApiClient {
     return response.data;
   }
 
+  // ========== ADMIN METRICS ==========
+
+  async getAdminDashboardMetrics(): Promise<any> {
+    const response = await this.client.get('/admin/metrics/dashboard');
+    return response.data;
+  }
+
+  async getAdminUsersMetrics(): Promise<any> {
+    const response = await this.client.get('/admin/metrics/users');
+    return response.data;
+  }
+
+  async getAdminEstablishmentsMetrics(): Promise<any> {
+    const response = await this.client.get('/admin/metrics/establishments');
+    return response.data;
+  }
+
+  async getAdminSubscriptionsMetrics(): Promise<any> {
+    const response = await this.client.get('/admin/metrics/subscriptions');
+    return response.data;
+  }
+
+  // ========== ADMIN GROWTH ==========
+
+  async getAppointmentGrowth(days: number = 30): Promise<any> {
+    const response = await this.client.get('/admin/growth/appointments', {
+      params: { days },
+    });
+    return response.data;
+  }
+
+  async getUserGrowth(days: number = 30): Promise<any> {
+    const response = await this.client.get('/admin/growth/users', {
+      params: { days },
+    });
+    return response.data;
+  }
+
+  async getRevenueGrowth(days: number = 30): Promise<any> {
+    const response = await this.client.get('/admin/growth/revenue', {
+      params: { days },
+    });
+    return response.data;
+  }
+
+  async getActivitySummary(): Promise<any> {
+    const response = await this.client.get('/admin/growth/activity-summary');
+    return response.data;
+  }
+
+  // ========== ADMIN SETTINGS ==========
+
+  async getPlatformSettings(): Promise<any> {
+    const response = await this.client.get('/admin/settings/platform');
+    return response.data;
+  }
+
+  async getSystemSettings(): Promise<any> {
+    const response = await this.client.get('/admin/settings/system');
+    return response.data;
+  }
+
+  async getEmailSettings(): Promise<any> {
+    const response = await this.client.get('/admin/settings/email');
+    return response.data;
+  }
+
+  async updatePlatformSettings(data: any): Promise<any> {
+    const response = await this.client.post('/admin/settings/update-platform', data);
+    return response.data;
+  }
+
   // ========== UPLOADS ==========
 
   async uploadImage(file: File): Promise<{ url: string; publicId: string }> {

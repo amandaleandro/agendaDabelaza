@@ -41,29 +41,16 @@ export default function AdminAgendeiDashboard() {
 
   const loadStats = async () => {
     try {
-      const [establishments, subscriptions, appointments] = await Promise.all([
-        api.listEstablishments(),
-        api.listSubscriptions(),
-        api.listAppointments()
-      ]);
-
-      // Calcular receita real somando os valores das assinaturas
-      const totalRevenue = subscriptions.reduce((sum, sub) => {
-        // Assumindo que cada subscription tem um campo price ou planPrice
-        return sum + (sub.price || 0);
-      }, 0);
-
-      // Calcular usuários ativos contando estabelecimentos únicos dos appointments
-      const activeUsersCount = new Set(appointments.map(a => a.userId)).size;
+      const metrics = await api.getAdminDashboardMetrics();
 
       setStats({
-        totalEstablishments: establishments.length,
-        totalSubscriptions: subscriptions.length,
-        totalRevenue: totalRevenue,
-        activeUsers: activeUsersCount,
-        totalAppointments: appointments.length,
+        totalEstablishments: metrics.totalEstablishments || 0,
+        totalSubscriptions: metrics.totalSubscriptions || 0,
+        totalRevenue: metrics.totalRevenue || 0,
+        activeUsers: metrics.activeUsers || 0,
+        totalAppointments: metrics.totalAppointments || 0,
         growth: {
-          establishments: 0, // TODO: Calcular crescimento real comparando com período anterior
+          establishments: 0,
           subscriptions: 0,
           revenue: 0,
           users: 0
