@@ -70,8 +70,8 @@ export default function AdminDashboard() {
       ]);
 
       // Calculate revenue
-      const paidPayments = payments.filter(p => p.status === PaymentStatus.PAID);
-      const totalRevenue = paidPayments.reduce((sum, p) => sum + p.amount, 0);
+      const paidPayments = (payments || []).filter(p => p.status === PaymentStatus.PAID);
+      const totalRevenue = paidPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
       // Revenue by day (last 7 days)
       const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -81,24 +81,48 @@ export default function AdminDashboard() {
       });
 
       const revenueByDay = last7Days.map(day => {
-        const dayPayments = paidPayments.filter(p => p.createdAt.startsWith(day));
-        const amount = dayPayments.reduce((sum, p) => sum + p.amount, 0);
-        const dayName = new Date(day).toLocaleDateString('pt-BR', { weekday: 'short' });
+        const dayPayments = paidPayments.filter(p => (p.createdAt || '').startsWith(day));
+        const amount = dayPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        const dayName = new Date(day + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short' });
         return { day: dayName, amount };
       });
 
-      // TODO: Top services - aguardando endpoint que retorne contagem de agendamentos por serviço
-      const topServices: Array<{ service: Service; count: number }> = [];
+      // Top services
+      const serviceCounts = (appointments || []).reduce((acc: any, curr) => {
+        acc[curr.serviceId] = (acc[curr.serviceId] || 0) + 1;
+        return acc;
+      }, {});
 
-      // TODO: Top professionals - aguardando endpoint que retorne receita por profissional
-      const topProfessionals: Array<{ professional: Professional; revenue: number }> = [];
+      const topServices = Object.entries(serviceCounts)
+        .map(([serviceId, count]) => {
+          const service = services.find(s => s.id === serviceId);
+          return { service: service!, count: count as number };
+        })
+        .filter(item => item.service)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      // Top professionals
+      const professionalRevenue = (appointments || []).reduce((acc: any, curr) => {
+        acc[curr.professionalId] = (acc[curr.professionalId] || 0) + (Number(curr.price) || 0);
+        return acc;
+      }, {});
+
+      const topProfessionals = Object.entries(professionalRevenue)
+        .map(([profId, revenue]) => {
+          const professional = professionals.find(p => p.id === profId);
+          return { professional: professional!, revenue: revenue as number };
+        })
+        .filter(item => item.professional)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
 
       setStats({
-        totalAppointments: appointments.length,
+        totalAppointments: (appointments || []).length,
         totalRevenue,
-        totalClients: clients.length,
-        totalServices: services.length,
-        recentAppointments: appointments.slice(0, 5),
+        totalClients: (clients || []).length,
+        totalServices: (services || []).length,
+        recentAppointments: (appointments || []).slice(0, 5),
         topServices,
         revenueByDay,
         topProfessionals,

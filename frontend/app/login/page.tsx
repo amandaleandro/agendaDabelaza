@@ -37,7 +37,7 @@ export default function LoginPage() {
         password: formData.password,
       });
       
-      login(response.token, response.user);
+      login(response.token, response.owner, response.establishment);
       
       router.push('/admin/dashboard');
     } catch (err: any) {

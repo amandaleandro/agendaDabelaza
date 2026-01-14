@@ -82,7 +82,7 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
           id: `pay-${payment.id}`,
           type: 'payment',
           title: 'Pagamento Pendente',
-          message: `R$ ${payment.amount.toFixed(2)} aguardando confirmação`,
+          message: `R$ ${(Number(payment.amount) || 0).toFixed(2)} aguardando confirmação`,
           time: formatTimeAgo(new Date(payment.createdAt)),
           read: false
         });

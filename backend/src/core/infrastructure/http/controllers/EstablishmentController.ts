@@ -9,9 +9,7 @@ export class EstablishmentController {
 
   @Get()
   async list() {
-    console.log('📍 EstablishmentController.list() called');
     const establishments = await this.establishmentRepository.findAll();
-    console.log('📊 Found establishments:', establishments.length);
     
     return establishments.map((establishment) => ({
       id: establishment.id,

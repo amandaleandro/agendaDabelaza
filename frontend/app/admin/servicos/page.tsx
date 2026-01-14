@@ -27,6 +27,7 @@ const api = new ApiClient();
 
 export default function ServicesPage() {
   const router = useRouter();
+  const { establishment } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +36,7 @@ export default function ServicesPage() {
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'duration'>('name');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<CreateServiceRequest>({
+    establishmentId: '',
     name: '',
     description: '',
     price: 0,
@@ -42,6 +44,12 @@ export default function ServicesPage() {
     professionalId: ''
   });
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (establishment) {
+      setFormData(prev => ({ ...prev, establishmentId: establishment.id }));
+    }
+  }, [establishment]);
 
   useEffect(() => {
     fetchData();
@@ -57,7 +65,11 @@ export default function ServicesPage() {
       setProfessionals(professionalsData);
       
       if (professionalsData.length > 0) {
-        setFormData(prev => ({ ...prev, professionalId: professionalsData[0].id }));
+        setFormData(prev => ({ 
+          ...prev, 
+          professionalId: professionalsData[0].id,
+          establishmentId: establishment?.id || ''
+        }));
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -74,6 +86,7 @@ export default function ServicesPage() {
       await fetchData();
       setIsModalOpen(false);
       setFormData({
+        establishmentId: establishment?.id || '',
         name: '',
         description: '',
         price: 0,

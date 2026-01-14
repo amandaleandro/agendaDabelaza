@@ -105,9 +105,9 @@ export default function PagamentosPage() {
     return { style: styles[status] || styles[SubscriptionStatus.ACTIVE], label: labels[status] || status };
   };
 
-  const totalPaid = payments.filter(p => p.status === PaymentStatus.PAID).reduce((sum, p) => sum + p.amount, 0);
-  const totalPending = payments.filter(p => p.status === PaymentStatus.PENDING).reduce((sum, p) => sum + p.amount, 0);
-  const activeSubscriptions = subscriptions.filter(s => s.status === SubscriptionStatus.ACTIVE).length;
+  const totalPaid = (payments || []).filter(p => p.status === PaymentStatus.PAID).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const totalPending = (payments || []).filter(p => p.status === PaymentStatus.PENDING).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const activeSubscriptions = (subscriptions || []).filter(s => s.status === SubscriptionStatus.ACTIVE).length;
 
   return (
     <div className="space-y-6">

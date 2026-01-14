@@ -62,7 +62,7 @@ export default function SignupPage() {
         primaryColor: '#4f46e5',
       });
       
-      login(response.token, response.user);
+      login(response.token, response.owner, response.establishment);
       
       router.push('/admin/dashboard');
     } catch (err: any) {

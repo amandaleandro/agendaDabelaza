@@ -21,7 +21,7 @@ export interface Client {
 
 export interface Professional {
   id: string;
-  establishmentId?: string;
+  establishmentId: string;
   userId?: string;
   name: string;
   email: string;
@@ -178,6 +178,7 @@ export interface CreateProfessionalRequest {
 }
 
 export interface CreateServiceRequest {
+  establishmentId: string;
   professionalId: string;
   name: string;
   description: string;
@@ -186,7 +187,8 @@ export interface CreateServiceRequest {
 }
 
 export interface CreateAppointmentRequest {
-  clientId: string;
+  userId: string;
+  establishmentId: string;
   professionalId: string;
   serviceId: string;
   scheduledAt: string;

@@ -61,7 +61,7 @@ export default function AssinaturaPage() {
       }
 
       // Buscar planos disponíveis
-      const plansResponse = await fetch('${API_BASE_URL}/subscriptions/plans');
+      const plansResponse = await fetch(`${API_BASE_URL}/subscriptions/plans`);
       if (plansResponse.ok) {
         const data = await plansResponse.json();
         setPlans(data.plans || []);

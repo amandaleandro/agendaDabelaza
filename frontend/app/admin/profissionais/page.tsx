@@ -33,6 +33,7 @@ const api = new ApiClient();
 
 export default function ProfessionalsPage() {
   const router = useRouter();
+  const { establishment } = useAuth();
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,17 +51,17 @@ export default function ProfessionalsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (establishment) {
+      setEstablishmentId(establishment.id);
+    }
+  }, [establishment]);
+
+  useEffect(() => {
     loadInitialData();
   }, []);
 
   const loadInitialData = async () => {
     try {
-      // Load establishments first to get the ID
-      const establishments = await api.listEstablishments();
-      if (establishments && establishments.length > 0) {
-        setEstablishmentId(establishments[0].id);
-      }
-      
       // Then load professionals
       await fetchProfessionals();
     } catch (error) {
