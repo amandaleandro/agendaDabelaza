@@ -196,7 +196,7 @@ export default function AdminLandingPage() {
     try {
       // Salvar no banco via API
       const apiUrl = getAppUrl();
-      const response = await fetch(`${apiUrl}/establishments/${establishmentId}/landing-config`, {
+      const response = await fetch(`${apiUrl}/establishments/${establishmentSlug}/landing-config`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
