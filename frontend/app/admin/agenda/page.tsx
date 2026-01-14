@@ -90,7 +90,8 @@ export default function AgendaPage() {
     e.preventDefault();
     try {
       await api.createAppointment({
-        clientId: formData.clientId,
+        userId: formData.clientId,
+        establishmentId: '', // TODO: pegar do contexto
         professionalId: formData.professionalId,
         serviceId: formData.serviceId,
         scheduledAt: new Date(formData.scheduledAt).toISOString()
