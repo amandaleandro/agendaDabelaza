@@ -357,9 +357,9 @@ export default function AdminDashboard() {
               <p className="text-sm text-slate-500 text-center py-8">Nenhum agendamento ainda</p>
             ) : (
               stats.recentAppointments.map((appointment) => {
-                const displayDate = appointment.date || (appointment.scheduledAt ? new Date(appointment.scheduledAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
-                const displayTime = appointment.slot || (appointment.scheduledAt ? new Date(appointment.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '');
-                const clientName = appointment.client?.name || 'Cliente';
+                const displayDate = appointment.scheduledAt ? new Date(appointment.scheduledAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+                const displayTime = appointment.scheduledAt ? new Date(appointment.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+                const clientName = appointment.user?.name || 'Cliente';
                 
                 return (
                   <div key={appointment.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/30 hover:bg-slate-800/50 transition-colors">
