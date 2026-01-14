@@ -73,6 +73,23 @@ jobs:
             echo "🚀 Iniciando deploy da versão $VERSION"
             echo "📍 Domínio: $DOMAIN"
 
+            # Limpeza de disco antes de iniciar
+            echo "🧹 Limpando espaço em disco..."
+            sudo docker system prune -af --volumes 2>/dev/null || true
+            sudo docker volume prune -f 2>/dev/null || true
+            sudo docker image prune -af --filter "until=72h" 2>/dev/null || true
+            
+            # Verificar espaço disponível
+            DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+            echo "💾 Uso de disco: ${DISK_USAGE}%"
+            
+            if [ "$DISK_USAGE" -gt 90 ]; then
+                echo "⚠️  Alerta: Disco com mais de 90% de ocupação!"
+                echo "Limpando logs do sistema..."
+                sudo journalctl --vacuum-time=7d 2>/dev/null || true
+                sudo apt-get clean 2>/dev/null || true
+            fi
+
             # Garantir Docker e docker-compose instalados
             if ! command -v docker >/dev/null 2>&1; then
               curl -fsSL https://get.docker.com | sh
@@ -289,10 +306,6 @@ jobs:
             # Executar migrações
             echo "📊 Executando migrações do banco..."
             sudo docker exec agendei-backend npx prisma migrate deploy || echo "⚠️  Erro nas migrações - verifique manualmente"
-
-            # Limpar imagens antigas
-            echo "🧹 Limpando imagens antigas..."
-            sudo docker image prune -af --filter "until=72h" || true
 
             echo "✅ Deploy concluído com sucesso!"
             echo "📊 Status dos containers:"
