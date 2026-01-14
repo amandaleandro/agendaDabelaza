@@ -9,6 +9,7 @@ import { ClientSubscriptionModule } from './modules/ClientSubscriptionModule';
 import { ProductModule } from './modules/ProductModule';
 import { PublicModule } from './modules/PublicModule';
 import { AuthModule } from './modules/AuthModule';
+import { DashboardModule } from './modules/DashboardModule';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AuthModule } from './modules/AuthModule';
     ProductModule,
     PublicModule,
     AuthModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

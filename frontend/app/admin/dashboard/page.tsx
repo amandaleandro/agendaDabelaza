@@ -61,10 +61,57 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [payments, appointments, services, professionals, clients] = await Promise.all([
-        api.listPayments().catch(() => []),
+      setLoading(true);
+      
+      // Usar endpoint otimizado do dashboard
+      const [dashboardStats, revenueData] = await Promise.all([
+        api.getDashboardStats().catch((err) => {
+          console.error('Erro ao carregar stats:', err);
+          return null;
+        }),
+        api.getDashboardRevenueByDay(7).catch((err) => {
+          console.error('Erro ao carregar receita:', err);
+          return [];
+        }),
+      ]);
+
+      if (!dashboardStats) {
+        // Fallback para modo antigo se o endpoint novo falhar
+        return loadDashboardDataLegacy();
+      }
+
+      setStats({
+        totalAppointments: dashboardStats.totalAppointments || 0,
+        totalRevenue: dashboardStats.totalRevenue || 0,
+        totalClients: dashboardStats.totalClients || 0,
+        totalServices: dashboardStats.totalServices || 0,
+        recentAppointments: dashboardStats.recentAppointments || [],
+        topServices: dashboardStats.topServices || [],
+        revenueByDay: revenueData || [],
+        topProfessionals: [], // TODO: implementar
+      });
+    } catch (error) {
+      console.error('Erro ao carregar dashboard:', error);
+      // Fallback para modo antigo
+      await loadDashboardDataLegacy();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDashboardDataLegacy = async () => {
+    try {
+      // Carregar dados de forma incremental para melhor UX
+      
+      // Primeira onda: dados mais críticos
+      const [appointments, services] = await Promise.all([
         api.listAppointments().catch(() => []),
         api.listServices().catch(() => []),
+      ]);
+
+      // Segunda onda: dados complementares
+      const [payments, professionals, clients] = await Promise.all([
+        api.listPayments().catch(() => []),
         api.listProfessionals().catch(() => []),
         api.listClients().catch(() => []),
       ]);

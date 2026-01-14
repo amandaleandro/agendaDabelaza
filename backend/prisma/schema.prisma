@@ -198,6 +198,10 @@ model Appointment {
   @@index([userId])
   @@index([establishmentId])
   @@index([professionalId, scheduledAt])
+  @@index([status])
+  @@index([createdAt])
+  @@index([establishmentId, status])
+  @@index([establishmentId, createdAt])
 }
 
 model AppointmentItem {
@@ -239,6 +243,8 @@ model Payment {
   @@index([appointmentId])
   @@index([status])
   @@index([transactionId])
+  @@index([createdAt])
+  @@index([status, createdAt])
 }
 
 model Subscription {

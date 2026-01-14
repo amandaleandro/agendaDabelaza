@@ -295,6 +295,25 @@ export class ApiClient {
     const response = await this.client.delete(`/client-subscriptions/${subscriptionId}`);
     return response.data;
   }
+
+  // ========== DASHBOARD ==========
+
+  async getDashboardStats(establishmentId?: string): Promise<any> {
+    const response = await this.client.get('/dashboard/stats', {
+      params: establishmentId ? { establishmentId } : undefined,
+    });
+    return response.data;
+  }
+
+  async getDashboardRevenueByDay(days: number = 7, establishmentId?: string): Promise<any> {
+    const response = await this.client.get('/dashboard/revenue-by-day', {
+      params: {
+        days: days.toString(),
+        ...(establishmentId ? { establishmentId } : {}),
+      },
+    });
+    return response.data;
+  }
 }
 
 export const apiClient = new ApiClient();
