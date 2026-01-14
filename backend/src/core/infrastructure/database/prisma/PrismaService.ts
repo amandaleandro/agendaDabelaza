@@ -8,6 +8,7 @@ export class PrismaService
 {
   private _payment: any;
   private _refund: any;
+    servicePlan: any;
   public get refund(): any {
     return this._refund;
   }

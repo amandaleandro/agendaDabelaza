@@ -58,17 +58,11 @@ export class AdminGrowthController {
       where: { createdAt: { gte: startDate } },
     });
 
-    // Total novo clientes
-    const newClients = await this.prisma.user.count({
-      where: { createdAt: { gte: startDate }, role: 'client' },
-    });
-
     // Usuários por dia
     const byDay = await this.prisma.$queryRaw`
       SELECT 
         DATE(created_at) as date,
-        COUNT(*) as count,
-        SUM(CASE WHEN role = 'client' THEN 1 ELSE 0 END) as clients
+        COUNT(*) as count
       FROM users
       WHERE created_at >= ${startDate}
       GROUP BY DATE(created_at)
@@ -77,7 +71,6 @@ export class AdminGrowthController {
 
     return {
       newUsers,
-      newClients,
       byDay,
       period: { days: daysNum, startDate },
     };

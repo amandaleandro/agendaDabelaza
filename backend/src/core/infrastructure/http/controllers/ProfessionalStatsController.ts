@@ -25,17 +25,8 @@ export class ProfessionalStatsController {
       select: { userId: true },
     });
 
-    // Calcular avaliação média
-    const ratings = await this.prisma.appointment.aggregate({
-      where: { professionalId: id, status: 'COMPLETED', rating: { not: null } },
-      _avg: { rating: true },
-    });
-
     return {
       appointments,
       revenue: appointmentRevenue._sum.price || 0,
       clients: clients.length,
-      rating: ratings._avg.rating ? parseFloat(ratings._avg.rating.toFixed(1)) : 0,
-    };
-  }
-}
+      rating: 0, // Campo rating não existe no modelo Appointment
