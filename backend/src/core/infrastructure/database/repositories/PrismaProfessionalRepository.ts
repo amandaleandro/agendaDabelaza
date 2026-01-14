@@ -15,7 +15,6 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: professional.name,
         email: professional.email,
         phone: professional.phone,
-        stripeAccountId: professional.stripeAccountId,
       },
     });
   }
@@ -33,7 +32,6 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
       name: row.name,
       email: row.email,
       phone: row.phone,
-      stripeAccountId: row.stripeAccountId,
       createdAt: row.createdAt,
     });
   }
@@ -51,7 +49,6 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: row.name,
         email: row.email,
         phone: row.phone,
-        stripeAccountId: row.stripeAccountId,
         createdAt: row.createdAt,
       }),
     );
@@ -69,7 +66,6 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: row.name,
         email: row.email,
         phone: row.phone,
-        stripeAccountId: row.stripeAccountId,
         createdAt: row.createdAt,
       }),
     );
@@ -83,7 +79,6 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: professional.name,
         email: professional.email,
         phone: professional.phone,
-        stripeAccountId: professional.stripeAccountId,
       },
     });
   }
@@ -111,7 +106,6 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
     name: string;
     email: string;
     phone: string;
-    stripeAccountId: string | null;
     createdAt: Date;
   }): Professional {
     return Professional.restore({
@@ -120,7 +114,6 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
       name: row.name,
       email: row.email,
       phone: row.phone,
-      stripeAccountId: row.stripeAccountId,
       createdAt: row.createdAt,
     });
   }

@@ -18,8 +18,4 @@ export class CreateProfessionalDto {
 
   @IsString()
   phone: string;
-
-  @IsOptional()
-  @IsString()
-  stripeAccountId?: string;
 }

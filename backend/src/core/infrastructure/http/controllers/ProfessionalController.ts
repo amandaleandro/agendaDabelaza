@@ -38,7 +38,6 @@ export class ProfessionalController {
       name: dto.name,
       email: dto.email,
       phone: dto.phone,
-      stripeAccountId: dto.stripeAccountId,
     });
 
     return {
@@ -47,7 +46,6 @@ export class ProfessionalController {
       name: professional.name,
       email: professional.email,
       phone: professional.phone,
-      stripeAccountId: professional.stripeAccountId,
       createdAt: professional.createdAt.toISOString(),
     };
   }
@@ -62,7 +60,6 @@ export class ProfessionalController {
       name: professional.name,
       email: professional.email,
       phone: professional.phone,
-      stripeAccountId: professional.stripeAccountId,
       createdAt: professional.createdAt.toISOString(),
     }));
   }
@@ -79,7 +76,6 @@ export class ProfessionalController {
       name: professional.name,
       email: professional.email,
       phone: professional.phone,
-      stripeAccountId: professional.stripeAccountId,
       createdAt: professional.createdAt.toISOString(),
     };
   }
@@ -106,7 +102,6 @@ export class ProfessionalController {
       name: updated.name,
       email: updated.email,
       phone: updated.phone,
-      stripeAccountId: professional.stripeAccountId,
       createdAt: professional.createdAt.toISOString(),
     };
   }

@@ -12,7 +12,6 @@ export class CreateProfessionalUseCase {
     name: string;
     email: string;
     phone: string;
-    stripeAccountId?: string;
   }) {
     const professional = Professional.create({
       id: randomUUID(),
@@ -20,7 +19,6 @@ export class CreateProfessionalUseCase {
       name: input.name,
       email: input.email,
       phone: input.phone,
-      stripeAccountId: input.stripeAccountId,
     });
 
     await this.professionalRepository.save(professional);

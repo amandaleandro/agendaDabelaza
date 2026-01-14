@@ -5,7 +5,6 @@ export class Professional {
     public readonly name: string,
     public readonly email: string,
     public readonly phone: string,
-    public readonly stripeAccountId: string | null,
     public readonly createdAt: Date,
   ) {}
 
@@ -15,7 +14,6 @@ export class Professional {
     name: string;
     email: string;
     phone: string;
-    stripeAccountId?: string;
   }): Professional {
     if (!props.id || !props.establishmentId || !props.name || !props.email) {
       throw new Error(
@@ -29,7 +27,6 @@ export class Professional {
       props.name,
       props.email,
       props.phone,
-      props.stripeAccountId || null,
       new Date(),
     );
   }
@@ -40,7 +37,6 @@ export class Professional {
     name: string;
     email: string;
     phone: string;
-    stripeAccountId: string | null;
     createdAt: Date;
   }): Professional {
     return new Professional(
@@ -49,7 +45,6 @@ export class Professional {
       props.name,
       props.email,
       props.phone,
-      props.stripeAccountId,
       props.createdAt,
     );
   }
