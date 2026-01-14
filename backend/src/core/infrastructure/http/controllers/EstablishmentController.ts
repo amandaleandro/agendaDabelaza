@@ -27,34 +27,62 @@ export class EstablishmentController {
     }));
   }
 
+  @Get(':id/landing-config')
+  async getLandingConfig(@Param('id') id: string) {
+    const establishment = await this.prisma.establishment.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        bio: true,
+        primaryColor: true,
+        secondaryColor: true,
+        accentColor: true,
+        logoUrl: true,
+        bannerUrl: true,
+      },
+    });
+
+    if (!establishment) {
+      return { error: 'Establishment not found' };
+    }
+
+    return establishment;
+  }
+
   @Put(':id/landing-config')
   async updateLandingConfig(
     @Param('id') id: string,
     @Body() dto: UpdateEstablishmentLandingDto,
   ) {
+    const data: any = {};
+    
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.slug !== undefined) data.slug = dto.slug;
+    if (dto.bio !== undefined) data.bio = dto.bio;
+    if (dto.primaryColor !== undefined) data.primaryColor = dto.primaryColor;
+    if (dto.secondaryColor !== undefined) data.secondaryColor = dto.secondaryColor;
+    if (dto.accentColor !== undefined) data.accentColor = dto.accentColor;
+    if (dto.logoUrl !== undefined) data.logoUrl = dto.logoUrl;
+    if (dto.bannerUrl !== undefined) data.bannerUrl = dto.bannerUrl;
+
     const updated = await this.prisma.establishment.update({
       where: { id },
-      data: {
-        name: dto.name,
-        bio: dto.bio,
-        primaryColor: dto.primaryColor,
-        secondaryColor: dto.secondaryColor,
-        accentColor: dto.accentColor,
-        logoUrl: dto.logoUrl,
-        bannerUrl: dto.bannerUrl,
+      data,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        bio: true,
+        primaryColor: true,
+        secondaryColor: true,
+        accentColor: true,
+        logoUrl: true,
+        bannerUrl: true,
       },
     });
 
-    return {
-      id: updated.id,
-      name: updated.name,
-      slug: updated.slug,
-      bio: updated.bio,
-      primaryColor: updated.primaryColor,
-      secondaryColor: updated.secondaryColor,
-      accentColor: updated.accentColor,
-      logoUrl: updated.logoUrl,
-      bannerUrl: updated.bannerUrl,
-    };
+    return updated;
   }
 }

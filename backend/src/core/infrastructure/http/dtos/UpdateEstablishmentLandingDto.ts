@@ -7,6 +7,10 @@ export class UpdateEstablishmentLandingDto {
 
   @IsOptional()
   @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
   bio?: string;
 
   @IsOptional()

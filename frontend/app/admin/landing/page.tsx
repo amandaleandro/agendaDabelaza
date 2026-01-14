@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { getAppUrl } from '@/config/api';
 import { ApiClient } from '@/services/api';
+import { useAuth } from '@/store/auth';
 
 const api = new ApiClient();
 
@@ -69,6 +70,7 @@ interface LandingConfig {
 }
 
 export default function AdminLandingPage() {
+  const { establishment, loadFromStorage } = useAuth();
   const [config, setConfig] = useState<LandingConfig>({
     branding: {
       businessName: 'Seu Estabelecimento',
@@ -120,39 +122,51 @@ export default function AdminLandingPage() {
     return getAppUrl(slug);
   };
 
-  // Recupera slug e nome do estabelecimento salvos no login
+  // Recupera estabelecimento logado da store
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const storedSlug = localStorage.getItem('establishmentSlug') || '';
-    const storedName = localStorage.getItem('establishmentName') || '';
-    const storedEstablishmentId = localStorage.getItem('establishmentId') || '';
-    setEstablishmentSlug(storedSlug);
-    setEstablishmentName(storedName);
-    setLandingUrl(buildLandingUrl(storedSlug));
-
-    const fetchSlugFallback = async () => {
-      try {
-        const establishments = await api.listEstablishments();
-        const match =
-          (storedEstablishmentId && establishments.find((est: any) => est.id === storedEstablishmentId)) ||
-          establishments[0];
-
-        if (match?.slug) {
-          setEstablishmentSlug(match.slug);
-          setEstablishmentName(match.name || storedName);
-          setLandingUrl(buildLandingUrl(match.slug));
-          localStorage.setItem('establishmentSlug', match.slug);
-          if (match.name) localStorage.setItem('establishmentName', match.name);
-        }
-      } catch (error) {
-        console.warn('Falha ao buscar slug do estabelecimento:', error);
-      }
-    };
-
-    if (!storedSlug || storedSlug === 'admin') {
-      fetchSlugFallback();
+    loadFromStorage();
+    
+    if (establishment?.slug) {
+      setEstablishmentSlug(establishment.slug);
+      setEstablishmentName(establishment.name);
+      setLandingUrl(buildLandingUrl(establishment.slug));
+      
+      // Carregar cores salvas do banco
+      loadLandingConfigFromServer(establishment.id);
     }
-  }, []);
+  }, [establishment, loadFromStorage]);
+
+  const loadLandingConfigFromServer = async (establishmentId: string) => {
+    try {
+      const apiUrl = getAppUrl();
+      const response = await fetch(`${apiUrl}/establishments/${establishmentId}/landing-config`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Atualizar cores carregadas do servidor
+        if (data.primaryColor || data.secondaryColor || data.accentColor) {
+          setConfig((prev) => ({
+            ...prev,
+            colors: {
+              primary: data.primaryColor || prev.colors.primary,
+              secondary: data.secondaryColor || prev.colors.secondary,
+              accent: data.accentColor || prev.colors.accent,
+            },
+            branding: {
+              ...prev.branding,
+              businessName: data.name || prev.branding.businessName,
+              description: data.bio || prev.branding.description,
+              logo: data.logoUrl || prev.branding.logo,
+              coverImage: data.bannerUrl || prev.branding.coverImage,
+            },
+          }));
+        }
+      }
+    } catch (error) {
+      console.warn('Falha ao carregar configurações do servidor:', error);
+    }
+  };
 
   // Carrega configuração salva (local) quando o slug estiver disponível
   useEffect(() => {
@@ -196,13 +210,14 @@ export default function AdminLandingPage() {
     try {
       // Salvar no banco via API
       const apiUrl = getAppUrl();
-      const response = await fetch(`${apiUrl}/establishments/${establishmentSlug}/landing-config`, {
+      const response = await fetch(`${apiUrl}/establishments/${establishment?.id}/landing-config`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           name: config.branding.businessName,
+          slug: establishmentSlug,
           bio: config.branding.description,
           primaryColor: config.colors.primary,
           secondaryColor: config.colors.secondary,
@@ -459,6 +474,38 @@ export default function AdminLandingPage() {
                     className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     placeholder="Ex: Salão Beleza Pura"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                    URL da Landing Page (Slug Customizado)
+                    <span className="block text-xs font-normal text-slate-400 mt-1">
+                      {landingUrl} 
+                    </span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={establishmentSlug}
+                      onChange={(e) => {
+                        const newSlug = e.target.value.toLowerCase().replace(/\s+/g, '-');
+                        setEstablishmentSlug(newSlug);
+                        setLandingUrl(buildLandingUrl(newSlug));
+                      }}
+                      className="flex-1 rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      placeholder="seu-estabelecimento"
+                    />
+                    <button
+                      onClick={copyToClipboard}
+                      className="flex items-center gap-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 px-4 py-2.5 text-sm text-slate-300 transition-colors"
+                      title="Copiar URL"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    💡 Use apenas letras, números e hífens. Se deixar em branco, usará: {config.branding.businessName.toLowerCase().replace(/\s+/g, '-')}
+                  </p>
                 </div>
 
                 <div>
