@@ -15,6 +15,9 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
+# Clean any previous build artifacts
+RUN rm -rf dist tsconfig.build.tsbuildinfo
+
 # Build application
 RUN npm run build
 
