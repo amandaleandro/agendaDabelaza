@@ -143,6 +143,7 @@ export class SubscriptionController {
   async create(@Body() dto: CreateSubscriptionDto) {
     const subscription = await this.createSubscriptionUseCase.execute({
       ownerId: dto.ownerId,
+      establishmentId: dto.establishmentId,
       planType: dto.planType,
     });
 
@@ -199,6 +200,7 @@ export class SubscriptionController {
     // Cria nova assinatura com o plano escolhido
     const newSubscription = await this.createSubscriptionUseCase.execute({
       ownerId: body.ownerId,
+      establishmentId: establishmentId,
       planType: body.planType,
     });
 
@@ -242,6 +244,7 @@ export class SubscriptionController {
     // Cria assinatura FREE automaticamente
     const freeSubscription = await this.createSubscriptionUseCase.execute({
       ownerId: body.ownerId,
+      establishmentId: establishmentId,
       planType: PlanType.FREE,
     });
 

@@ -5,6 +5,9 @@ export class CreateSubscriptionDto {
   @IsUUID()
   ownerId: string;
 
+  @IsUUID()
+  establishmentId: string;
+
   @IsEnum(PlanType)
   planType: PlanType;
 }

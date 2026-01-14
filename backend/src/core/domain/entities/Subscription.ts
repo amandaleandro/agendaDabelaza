@@ -9,7 +9,8 @@ export enum SubscriptionStatus {
 export class Subscription {
   constructor(
     public readonly id: string,
-    public readonly ownerId: string, // estabelecimento ou cliente
+    public readonly ownerId: string,
+    public readonly establishmentId: string,
     public readonly planType: PlanType,
     public status: SubscriptionStatus,
     public readonly startedAt: Date,

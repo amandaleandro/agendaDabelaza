@@ -22,6 +22,7 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     return new Subscription(
       row.id,
       row.ownerId,
+      row.establishmentId,
       row.planType as PlanType,
       row.status as SubscriptionStatus,
       row.startedAt,
@@ -37,6 +38,7 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     return new Subscription(
       row.id,
       row.ownerId,
+      row.establishmentId,
       row.planType as PlanType,
       row.status as SubscriptionStatus,
       row.startedAt,
@@ -49,6 +51,7 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
       data: {
         id: subscription.id,
         ownerId: subscription.ownerId,
+        establishmentId: subscription.establishmentId,
         planType: subscription.planType,
         status: subscription.status,
         startedAt: subscription.startedAt,
@@ -79,6 +82,7 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
         new Subscription(
           row.id,
           row.ownerId,
+          row.establishmentId,
           row.planType as PlanType,
           row.status as SubscriptionStatus,
           row.startedAt,
@@ -98,6 +102,7 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     return new Subscription(
       row.id,
       row.ownerId,
+      row.establishmentId,
       row.planType as PlanType,
       row.status as SubscriptionStatus,
       row.startedAt,

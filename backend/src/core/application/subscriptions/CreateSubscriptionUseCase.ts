@@ -14,10 +14,11 @@ export class CreateSubscriptionUseCase {
     private readonly subscriptionRepository: SubscriptionRepository,
   ) {}
 
-  async execute(input: { ownerId: string; planType: PlanType }) {
+  async execute(input: { ownerId: string; establishmentId: string; planType: PlanType }) {
     const subscription = new Subscription(
       randomUUID(),
       input.ownerId,
+      input.establishmentId,
       input.planType,
       SubscriptionStatus.ACTIVE,
       new Date(),

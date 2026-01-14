@@ -84,6 +84,7 @@ export class SignupUseCase {
     const subscription = new Subscription(
       randomUUID(),
       ownerId,
+      establishment.id,
       PlanType.FREE,
       SubscriptionStatus.ACTIVE,
       new Date(),
