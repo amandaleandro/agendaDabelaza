@@ -34,7 +34,8 @@ const api = new ApiClient();
 
 export default function ProfessionalsPage() {
   const router = useRouter();
-  const { establishment } = useAuth();
+  const auth = useAuth();
+  const establishment = auth.establishment;
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
