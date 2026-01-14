@@ -3,7 +3,7 @@
  * Centralized API URL management for the entire application
  */
 
-const DEFAULT_API_URL = 'http://localhost:3001/api';
+const DEFAULT_API_URL = '/api';
 const DEFAULT_APP_URL = 'http://localhost:3002';
 
 export const API_BASE_URL =

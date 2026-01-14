@@ -43,7 +43,8 @@ jobs:
       - name: Build & push frontend image
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || format('http://{0}/api', secrets.DEPLOY_HOST) }}
+          # Usamos /api por padrão para funcionar em qualquer domínio/IP via Nginx
+          API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || '/api' }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           echo "Building frontend with API_URL: $API_URL"
@@ -264,12 +265,12 @@ jobs:
             JWT_SECRET=$(openssl rand -hex 32)
             JWT_EXPIRATION=24h
             MERCADOPAGO_ACCESS_TOKEN=
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || format('http://{0}/api', secrets.DEPLOY_HOST) }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || '/api' }}
             ENVEOF
             else
               # Garantir que NEXT_PUBLIC_API_URL está definido no .env se estiver vazio
-              if ! grep -q "NEXT_PUBLIC_API_URL=http" .env; then
-                sed -i "s|NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || format('http://{0}/api', secrets.DEPLOY_HOST) }}|" .env
+              if ! grep -q "NEXT_PUBLIC_API_URL=/" .env; then
+                sed -i "s|NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || '/api' }}|" .env
               fi
             fi
 

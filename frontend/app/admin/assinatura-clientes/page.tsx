@@ -1,5 +1,6 @@
 'use client';
 
+import { API_BASE_URL } from '@/config/api';
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Gift, DollarSign, User, Clock, Check, AlertCircle } from 'lucide-react';
 
@@ -53,7 +54,7 @@ export default function AssinaturasClientesPage() {
 
     try {
       // Buscar clientes
-      const clientsResponse = await fetch('http://localhost:3001/api/clients');
+      const clientsResponse = await fetch('${API_BASE_URL}/clients');
       if (clientsResponse.ok) {
         const clientsData = await clientsResponse.json();
         setClients(Array.isArray(clientsData) ? clientsData : []);
@@ -61,7 +62,7 @@ export default function AssinaturasClientesPage() {
 
       // Buscar assinaturas de clientes
       const subsResponse = await fetch(
-        `http://localhost:3001/api/client-subscriptions/establishment/${establishmentId}`
+        `${API_BASE_URL}/client-subscriptions/establishment/${establishmentId}`
       );
       if (subsResponse.ok) {
         const subsData = await subsResponse.json();
@@ -88,7 +89,7 @@ export default function AssinaturasClientesPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/client-subscriptions/establishment/${establishmentId}`,
+        `${API_BASE_URL}/client-subscriptions/establishment/${establishmentId}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -125,7 +126,7 @@ export default function AssinaturasClientesPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/client-subscriptions/${subscriptionId}`,
+        `${API_BASE_URL}/client-subscriptions/${subscriptionId}`,
         { method: 'DELETE' }
       );
 

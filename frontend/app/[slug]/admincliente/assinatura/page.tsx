@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from '@/config/api';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/store/auth';
 import { useParams, useRouter } from 'next/navigation';
@@ -41,7 +42,7 @@ export default function AssinaturaPage() {
     const loadSubscriptions = async () => {
       if (!user?.email) return;
       try {
-        const res = await fetch(`http://localhost:3001/api/client-subscriptions/establishment/${params.slug}`, {
+        const res = await fetch(`${API_BASE_URL}/client-subscriptions/establishment/${params.slug}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
@@ -65,7 +66,7 @@ export default function AssinaturaPage() {
     setError('');
     
     try {
-      const res = await fetch(`http://localhost:3001/api/client-subscriptions/${subscriptionId}`, {
+      const res = await fetch(`${API_BASE_URL}/client-subscriptions/${subscriptionId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

@@ -1,5 +1,6 @@
 'use client';
 
+import { API_BASE_URL } from '@/config/api';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -52,7 +53,7 @@ export default function AdminSignupPage() {
       }
 
       // Chamar API real de signup
-      const response = await fetch('http://localhost:3001/api/auth/signup', {
+      const response = await fetch('${API_BASE_URL}/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -72,7 +73,7 @@ export default function AdminSignupPage() {
       const data = await response.json();
       
       // Fazer login automaticamente após signup
-      const loginResponse = await fetch('http://localhost:3001/api/auth/login', {
+      const loginResponse = await fetch('${API_BASE_URL}/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

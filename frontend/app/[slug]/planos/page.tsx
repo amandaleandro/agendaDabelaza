@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ShoppingCart, Check, Sparkles, AlertCircle } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEstablishmentTheme } from '@/hooks/useEstablishmentTheme';
+import { API_BASE_URL } from '@/config/api';
 
 interface ServiceInPlan {
   serviceId: string;
@@ -62,7 +63,7 @@ export default function ComprarPlanosPage() {
     try {
       // Buscar estabelecimento
       const estabResponse = await fetch(
-        `http://localhost:3001/api/public/establishments/${slug}`
+        `${API_BASE_URL}/public/establishments/${slug}`
       );
       if (estabResponse.ok) {
         const estabData = await estabResponse.json();
@@ -71,7 +72,7 @@ export default function ComprarPlanosPage() {
 
       // Buscar planos de serviços
       const plansResponse = await fetch(
-        `http://localhost:3001/api/service-plans/public/${slug}`
+        `${API_BASE_URL}/service-plans/public/${slug}`
       );
       if (plansResponse.ok) {
         const plansData = await plansResponse.json();
@@ -113,7 +114,7 @@ export default function ComprarPlanosPage() {
 
       // Chamar API pública para comprar plano
       const response = await fetch(
-        `http://localhost:3001/api/public/client-subscriptions/purchase/${selectedPlan}`,
+        `${API_BASE_URL}/public/client-subscriptions/purchase/${selectedPlan}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

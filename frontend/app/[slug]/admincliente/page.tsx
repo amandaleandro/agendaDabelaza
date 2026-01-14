@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from '@/config/api';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
@@ -26,7 +27,7 @@ export default function ClientLoginPage() {
     // Buscar nome do estabelecimento
     const fetchEstablishment = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/public/establishments/${slug}`);
+        const res = await fetch(`${API_BASE_URL}/public/establishments/${slug}`);
         if (res.ok) {
           const data = await res.json();
           setEstablishmentName(data.name || slug.replace(/-/g, ' '));
@@ -48,7 +49,7 @@ export default function ClientLoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/public/auth/login', {
+      const res = await fetch('${API_BASE_URL}/public/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, password: form.password, establishmentSlug: slug })

@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from '@/config/api';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/store/auth';
 import { useParams } from 'next/navigation';
@@ -33,7 +34,7 @@ export default function PerfilPage() {
     const loadUserData = async () => {
       if (!user?.id) return;
       try {
-        const res = await fetch(`http://localhost:3001/api/public/users/${user.id}`);
+        const res = await fetch(`${API_BASE_URL}/public/users/${user.id}`);
         if (res.ok) {
           const data = await res.json();
           setForm(prev => ({
@@ -86,7 +87,7 @@ export default function PerfilPage() {
         updateData.newPassword = form.newPassword;
       }
 
-      const res = await fetch(`http://localhost:3001/api/public/users/${user?.id}`, {
+      const res = await fetch(`${API_BASE_URL}/public/users/${user?.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),

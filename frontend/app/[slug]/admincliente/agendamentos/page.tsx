@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from '@/config/api';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/store/auth';
@@ -38,14 +39,14 @@ export default function ClientAppointmentsPage() {
   const loadAppointments = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/appointments/user/${user.id}`);
+      const res = await fetch(`${API_BASE_URL}/appointments/user/${user.id}`);
       if (res.ok) {
         const data = await res.json();
         // Buscar detalhes de cada agendamento
         const detailed = await Promise.all(
           data.map(async (apt: AppointmentItem) => {
             try {
-              const detailRes = await fetch(`http://localhost:3001/api/appointments/${apt.id}`);
+              const detailRes = await fetch(`${API_BASE_URL}/appointments/${apt.id}`);
               if (detailRes.ok) {
                 return await detailRes.json();
               }
@@ -67,7 +68,7 @@ export default function ClientAppointmentsPage() {
     
     setCancelingId(appointmentId);
     try {
-      const res = await fetch(`http://localhost:3001/api/appointments/${appointmentId}/cancel`, {
+      const res = await fetch(`${API_BASE_URL}/appointments/${appointmentId}/cancel`, {
         method: 'POST',
       });
       

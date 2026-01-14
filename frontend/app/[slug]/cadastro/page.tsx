@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Mail, Lock, User, Phone, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useEstablishmentTheme } from '@/hooks/useEstablishmentTheme';
 import { useAuth } from '@/store/auth';
+import { API_BASE_URL } from '@/config/api';
 
 export default function ClientSignupPage() {
   const params = useParams();
@@ -34,7 +35,7 @@ export default function ClientSignupPage() {
   useEffect(() => {
     const loadEstablishment = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/public/establishments/${slug}`);
+        const res = await fetch(`${API_BASE_URL}/public/establishments/${slug}`);
         if (res.ok) {
           const data = await res.json();
           setEstablishmentName(data.name || slug.replace(/-/g, ' '));
@@ -75,7 +76,7 @@ export default function ClientSignupPage() {
       }
 
       // Criar usuário diretamente via API
-      const res = await fetch('http://localhost:3001/api/public/auth/register', {
+      const res = await fetch(`${API_BASE_URL}/public/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

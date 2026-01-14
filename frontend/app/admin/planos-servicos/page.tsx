@@ -1,5 +1,6 @@
 'use client';
 
+import { API_BASE_URL } from '@/config/api';
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Package, AlertCircle, Check } from 'lucide-react';
 
@@ -60,7 +61,7 @@ export default function PlanosServicosPage() {
 
     try {
       // Buscar serviços disponíveis
-      const servicesResponse = await fetch('http://localhost:3001/api/services');
+      const servicesResponse = await fetch('${API_BASE_URL}/services');
       if (servicesResponse.ok) {
         const servicesData = await servicesResponse.json();
         setServices(Array.isArray(servicesData) ? servicesData : []);
@@ -68,7 +69,7 @@ export default function PlanosServicosPage() {
 
       // Buscar planos de serviços
       const plansResponse = await fetch(
-        `http://localhost:3001/api/service-plans/establishment/${establishmentId}`
+        `${API_BASE_URL}/service-plans/establishment/${establishmentId}`
       );
       if (plansResponse.ok) {
         const plansData = await plansResponse.json();
@@ -149,8 +150,8 @@ export default function PlanosServicosPage() {
 
     try {
       const url = editingId
-        ? `http://localhost:3001/api/service-plans/${editingId}`
-        : `http://localhost:3001/api/service-plans/establishment/${establishmentId}`;
+        ? `${API_BASE_URL}/service-plans/${editingId}`
+        : `${API_BASE_URL}/service-plans/establishment/${establishmentId}`;
 
       const method = editingId ? 'PUT' : 'POST';
 
@@ -199,7 +200,7 @@ export default function PlanosServicosPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/service-plans/${planId}`,
+        `${API_BASE_URL}/service-plans/${planId}`,
         { method: 'DELETE' }
       );
 

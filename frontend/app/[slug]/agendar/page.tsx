@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Calendar, Clock, User, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import { useEstablishmentTheme } from '@/hooks/useEstablishmentTheme';
+import { API_BASE_URL } from '@/config/api';
 
 interface Establishment {
   id: string;
@@ -74,7 +75,7 @@ export default function AgendarPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const estResponse = await fetch(`http://localhost:3001/api/public/establishments/${slug}`);
+        const estResponse = await fetch(`${API_BASE_URL}/public/establishments/${slug}`);
         if (estResponse.ok) {
           const estData = await estResponse.json();
           setEstablishment(estData);
@@ -82,13 +83,13 @@ export default function AgendarPage() {
           setError('Estabelecimento não encontrado');
         }
 
-        const srvResponse = await fetch(`http://localhost:3001/api/public/establishments/${slug}/services`);
+        const srvResponse = await fetch(`${API_BASE_URL}/public/establishments/${slug}/services`);
         if (srvResponse.ok) {
           const srvData = await srvResponse.json();
           setServices(srvData);
         }
 
-        const proResponse = await fetch(`http://localhost:3001/api/public/establishments/${slug}/professionals`);
+        const proResponse = await fetch(`${API_BASE_URL}/public/establishments/${slug}/professionals`);
         if (proResponse.ok) {
           const proData = await proResponse.json();
           setProfessionals(proData);
@@ -112,7 +113,7 @@ export default function AgendarPage() {
         
         try {
           // Verificar se o email já existe
-          const emailCheckResponse = await fetch(`http://localhost:3001/api/public/auth/check-email/${formData.clientEmail}`);
+          const emailCheckResponse = await fetch(`${API_BASE_URL}/public/auth/check-email/${formData.clientEmail}`);
           if (emailCheckResponse.ok) {
             const emailData = await emailCheckResponse.json();
             setIsExistingUser(emailData.exists);
@@ -129,7 +130,7 @@ export default function AgendarPage() {
           }
           
           // Verificar assinatura
-          const response = await fetch(`http://localhost:3001/api/public/establishments/${slug}/subscription/${formData.clientEmail}`);
+          const response = await fetch(`${API_BASE_URL}/public/establishments/${slug}/subscription/${formData.clientEmail}`);
           if (response.ok) {
             const data = await response.json();
             setSubscription(data.hasSubscription ? data : null);
@@ -170,7 +171,7 @@ export default function AgendarPage() {
 
       setLoadingSlots(true);
       try {
-        const response = await fetch('http://localhost:3001/api/public/appointments/available-slots', {
+        const response = await fetch(`${API_BASE_URL}/public/appointments/available-slots`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -184,7 +185,7 @@ export default function AgendarPage() {
           const slots = await response.json();
           // Transformar em array de objetos {date, time}
           // A API retorna apenas horários, vamos buscar também as datas
-          const response2 = await fetch('http://localhost:3001/api/public/appointments/available-dates', {
+          const response2 = await fetch(`${API_BASE_URL}/public/appointments/available-dates`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -200,7 +201,7 @@ export default function AgendarPage() {
             const allSlots: Array<{date: string, time: string}> = [];
             
             for (const date of dates) {
-              const slotsResponse = await fetch('http://localhost:3001/api/public/appointments/available-slots', {
+              const slotsResponse = await fetch(`${API_BASE_URL}/public/appointments/available-slots`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -347,7 +348,7 @@ export default function AgendarPage() {
           requestBody.depositPercent = establishment.depositPercent;
         }
 
-        const response = await fetch('http://localhost:3001/api/public/appointments', {
+        const response = await fetch(`${API_BASE_URL}/public/appointments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody)

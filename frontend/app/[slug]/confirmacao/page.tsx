@@ -1,5 +1,6 @@
 'use client';
 
+import { API_BASE_URL } from '@/config/api';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Check, Calendar, User, DollarSign, QrCode, ExternalLink, Mail } from 'lucide-react';
@@ -53,7 +54,7 @@ export default function ConfirmacaoPage() {
 
   const loadAppointmentDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/appointments/${appointmentId}`);
+      const response = await fetch(`${API_BASE_URL}/appointments/${appointmentId}`);
       if (response.ok) {
         const data = await response.json();
         // Normalize to always have `user` populated
@@ -78,7 +79,7 @@ export default function ConfirmacaoPage() {
     setError('');
     
     try {
-      const response = await fetch(`http://localhost:3001/api/appointments/${appointmentId}/payment-link`, {
+      const response = await fetch(`${API_BASE_URL}/appointments/${appointmentId}/payment-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

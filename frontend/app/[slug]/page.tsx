@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, Clock, MapPin, Phone, Star, ChevronRight, Sparkles, Loader2 } from 'lucide-react';
 import { useEstablishmentTheme } from '@/hooks/useEstablishmentTheme';
+import { API_BASE_URL } from '@/config/api';
 
 interface Establishment {
   id: string;
@@ -46,7 +47,7 @@ export default function LandingPage() {
     const loadData = async () => {
       try {
         // Carregar estabelecimento
-        const estResponse = await fetch(`http://localhost:3001/api/public/establishments/${slug}`);
+        const estResponse = await fetch(`${API_BASE_URL}/public/establishments/${slug}`);
         if (!estResponse.ok) {
           setError('Estabelecimento não encontrado');
           return;
@@ -74,14 +75,14 @@ export default function LandingPage() {
         setEstablishment(mergedEst);
 
         // Carregar serviços
-        const srvResponse = await fetch(`http://localhost:3001/api/public/establishments/${slug}/services`);
+        const srvResponse = await fetch(`${API_BASE_URL}/public/establishments/${slug}/services`);
         if (srvResponse.ok) {
           const srvData = await srvResponse.json();
           setServices(srvData);
         }
 
         // Carregar profissionais
-        const proResponse = await fetch(`http://localhost:3001/api/public/establishments/${slug}/professionals`);
+        const proResponse = await fetch(`${API_BASE_URL}/public/establishments/${slug}/professionals`);
         if (proResponse.ok) {
           const proData = await proResponse.json();
           setProfessionals(proData);

@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from '@/config/api';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/store/auth';
@@ -47,7 +48,7 @@ export default function RefundsPage() {
   const loadRefunds = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/refunds/user/${user.id}`);
+      const res = await fetch(`${API_BASE_URL}/refunds/user/${user.id}`);
       if (res.ok) {
         const data = await res.json();
         setRefunds(data);

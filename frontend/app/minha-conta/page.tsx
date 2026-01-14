@@ -1,5 +1,6 @@
  'use client';
 
+import { API_BASE_URL } from '@/config/api';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useEstablishmentTheme } from '@/hooks/useEstablishmentTheme';
@@ -74,7 +75,7 @@ function MinhaContaContent() {
     try {
       // Buscar assinaturas do cliente
       const subsResponse = await fetch(
-        `http://localhost:3001/api/client-subscriptions/email/${clientEmail}`
+        `${API_BASE_URL}/client-subscriptions/email/${clientEmail}`
       );
       if (subsResponse.ok) {
         const data = await subsResponse.json();
@@ -83,7 +84,7 @@ function MinhaContaContent() {
 
       // Buscar transações
       const transResponse = await fetch(
-        `http://localhost:3001/api/transactions/email/${clientEmail}`
+        `${API_BASE_URL}/transactions/email/${clientEmail}`
       );
       if (transResponse.ok) {
         const data = await transResponse.json();
@@ -92,7 +93,7 @@ function MinhaContaContent() {
 
       // Buscar planos disponíveis
       const plansResponse = await fetch(
-        'http://localhost:3001/api/service-plans/public'
+        '${API_BASE_URL}/service-plans/public'
       );
       if (plansResponse.ok) {
         const data = await plansResponse.json();
@@ -115,7 +116,7 @@ function MinhaContaContent() {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/client-subscriptions/upgrade`,
+        `${API_BASE_URL}/client-subscriptions/upgrade`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -152,7 +153,7 @@ function MinhaContaContent() {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/client-subscriptions/${subscriptionId}`,
+        `${API_BASE_URL}/client-subscriptions/${subscriptionId}`,
         { method: 'DELETE' }
       );
 

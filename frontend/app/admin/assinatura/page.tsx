@@ -1,5 +1,6 @@
 'use client';
 
+import { API_BASE_URL } from '@/config/api';
 import { useState, useEffect } from 'react';
 import { Check, X, Sparkles, Zap, Crown, Building2, ChevronRight, AlertCircle } from 'lucide-react';
 
@@ -52,7 +53,7 @@ export default function AssinaturaPage() {
     try {
       // Buscar plano atual
       const currentResponse = await fetch(
-        `http://localhost:3001/api/subscriptions/establishment/${establishmentId}`
+        `${API_BASE_URL}/subscriptions/establishment/${establishmentId}`
       );
       if (currentResponse.ok) {
         const current = await currentResponse.json();
@@ -60,7 +61,7 @@ export default function AssinaturaPage() {
       }
 
       // Buscar planos disponíveis
-      const plansResponse = await fetch('http://localhost:3001/api/subscriptions/plans');
+      const plansResponse = await fetch('${API_BASE_URL}/subscriptions/plans');
       if (plansResponse.ok) {
         const data = await plansResponse.json();
         setPlans(data.plans || []);
@@ -92,7 +93,7 @@ export default function AssinaturaPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/subscriptions/establishment/${establishmentId}/plan`,
+        `${API_BASE_URL}/subscriptions/establishment/${establishmentId}/plan`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -133,7 +134,7 @@ export default function AssinaturaPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/subscriptions/establishment/${establishmentId}/cancel`,
+        `${API_BASE_URL}/subscriptions/establishment/${establishmentId}/cancel`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

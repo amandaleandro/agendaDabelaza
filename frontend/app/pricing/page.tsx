@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Check, Zap, Crown, Rocket, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '@/config/api';
 
 interface Plan {
   id: string;
@@ -24,7 +25,7 @@ export default function PricingPage() {
 
   const loadPlans = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/subscriptions/plans');
+      const response = await fetch(`${API_BASE_URL}/subscriptions/plans`);
       const data = await response.json();
       setPlans(data.plans);
     } catch (error) {
@@ -48,7 +49,7 @@ export default function PricingPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/subscriptions/establishment/${establishmentId}/plan`,
+        `${API_BASE_URL}/subscriptions/establishment/${establishmentId}/plan`,
         {
           method: 'POST',
           headers: {
