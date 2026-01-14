@@ -67,6 +67,7 @@ model Establishment {
   products        Product[]
   users           UserEstablishment[]
   subscriptions   Subscription[]
+  servicePlans    ServicePlan[]
 
   @@map("establishments")
   @@index([ownerId])
@@ -275,6 +276,30 @@ model Subscription {
   @@index([status])
 }
 
+// Plano de serviço criado pelo estabelecimento
+// Exemplos: "Pacote 10 sessões", "Mensalidade Ouro", etc
+model ServicePlan {
+  id              String   @id @default(cuid())
+  establishmentId String   @map("establishment_id")
+  name            String
+  description     String   @db.Text
+  price           Float
+  durationDays    Int      @map("duration_days") // Dias de validade do plano
+  maxServices     Int?     @map("max_services")   // Número máximo de serviços (null = ilimitado)
+  discount        Float?                         // Desconto em % 
+  benefits        String[] @default([])          // Lista de benefícios
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  subscriptions   ClientSubscription[]
+
+  @@map("service_plans")
+  @@index([establishmentId])
+  @@index([active])
+}
+
 // Assinatura de cliente em um estabelecimento (ex: pacote mensal)
 // Um cliente pode ter múltiplos planos do mesmo estabelecimento
 model ClientSubscription {
@@ -290,6 +315,8 @@ model ClientSubscription {
   startedAt         DateTime @default(now()) @map("started_at")
   expiresAt         DateTime @map("expires_at")
   createdAt         DateTime @default(now()) @map("created_at")
+
+  servicePlan       ServicePlan? @relation(fields: [servicePlanId], references: [id], onDelete: SetNull)
 
   @@map("client_subscriptions")
   @@index([userId])

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/store/auth';
+import { getAppUrl } from '@/config/api';
 import { 
   Crown, 
   Plus, 
@@ -30,6 +32,7 @@ interface SubscriptionPlan {
 }
 
 export default function PlanosPage() {
+  const { establishment, loadFromStorage } = useAuth();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -47,16 +50,31 @@ export default function PlanosPage() {
   });
 
   useEffect(() => {
-    loadPlans();
-  }, []);
+    loadFromStorage();
+  }, [loadFromStorage]);
+
+  useEffect(() => {
+    if (establishment?.id) {
+      loadPlans();
+    }
+  }, [establishment?.id]);
 
   const loadPlans = async () => {
     try {
-      // TODO: Implementar API real de planos de assinatura quando existir
-      // Por enquanto, mostra vazio até ter backend implementado
-      setPlans([]);
+      setLoading(true);
+      const apiUrl = getAppUrl();
+      const response = await fetch(`${apiUrl}/establishments/${establishment?.id}/plans`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPlans(data.plans || []);
+      } else {
+        console.error('Erro ao carregar planos');
+        setPlans([]);
+      }
     } catch (error) {
       console.error('Erro ao carregar planos:', error);
+      setPlans([]);
     } finally {
       setLoading(false);
     }
@@ -88,6 +106,11 @@ export default function PlanosPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!establishment?.id) {
+      alert('Erro: Estabelecimento não identificado');
+      return;
+    }
+    
     try {
       const planData = {
         name: formData.name,
@@ -100,21 +123,29 @@ export default function PlanosPage() {
         active: formData.active,
       };
 
-      if (editingPlan) {
-        // TODO: Implementar atualização
-        // await api.updateSubscriptionPlan(editingPlan.id, planData);
-        console.log('Atualizar plano:', planData);
-      } else {
-        // TODO: Implementar criação
-        // await api.createSubscriptionPlan(planData);
-        console.log('Criar plano:', planData);
+      const apiUrl = getAppUrl();
+      const url = editingPlan
+        ? `${apiUrl}/establishments/${establishment.id}/plans/${editingPlan.id}`
+        : `${apiUrl}/establishments/${establishment.id}/plans`;
+
+      const method = editingPlan ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(planData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar plano');
       }
 
       setShowModal(false);
       resetForm();
-      loadPlans();
+      await loadPlans();
     } catch (error) {
       console.error('Erro ao salvar plano:', error);
+      alert('Erro ao salvar plano. Tente novamente.');
     }
   };
 
@@ -135,25 +166,44 @@ export default function PlanosPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este plano?')) return;
+    if (!establishment?.id) return;
     
     try {
-      // TODO: Implementar exclusão
-      // await api.deleteSubscriptionPlan(id);
-      console.log('Excluir plano:', id);
-      loadPlans();
+      const apiUrl = getAppUrl();
+      const response = await fetch(
+        `${apiUrl}/establishments/${establishment.id}/plans/${id}`,
+        { method: 'DELETE' }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao excluir plano');
+      }
+
+      await loadPlans();
     } catch (error) {
       console.error('Erro ao excluir plano:', error);
+      alert('Erro ao excluir plano. Tente novamente.');
     }
   };
 
   const toggleActive = async (id: string, active: boolean) => {
+    if (!establishment?.id) return;
+
     try {
-      // TODO: Implementar toggle
-      // await api.updateSubscriptionPlan(id, { active: !active });
-      console.log('Toggle ativo:', id, !active);
-      loadPlans();
+      const apiUrl = getAppUrl();
+      const response = await fetch(
+        `${apiUrl}/establishments/${establishment.id}/plans/${id}/toggle`,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' } }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar status');
+      }
+
+      await loadPlans();
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
+      alert('Erro ao atualizar plano. Tente novamente.');
     }
   };
 
