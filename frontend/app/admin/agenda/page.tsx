@@ -364,8 +364,8 @@ export default function AgendaPage() {
                   
                   <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
                     {dayAppointments.slice(0, 3).map((apt, i) => {
-                      const clientName = apt.client?.name || (apt.clientId ? getClientName(apt.clientId) : 'Cliente');
-                      const time = apt.slot || (apt.scheduledAt ? new Date(apt.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '');
+                      const clientName = apt.user?.name || 'Cliente';
+                      const time = apt.scheduledAt ? new Date(apt.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
                       
                       return (
                         <div
