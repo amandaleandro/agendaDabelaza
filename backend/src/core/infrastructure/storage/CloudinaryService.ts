@@ -12,7 +12,7 @@ export class CloudinaryService {
   }
 
   async uploadImage(
-    file: Express.Multer.File,
+    file: any,
     folder: string = 'agendei',
   ): Promise<{ url: string; publicId: string }> {
     return new Promise((resolve, reject) => {
@@ -47,7 +47,7 @@ export class CloudinaryService {
   }
 
   async uploadMultiple(
-    files: Express.Multer.File[],
+    files: any[],
     folder: string = 'agendei',
   ): Promise<Array<{ url: string; publicId: string }>> {
     return Promise.all(

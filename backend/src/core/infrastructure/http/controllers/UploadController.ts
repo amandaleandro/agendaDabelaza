@@ -18,7 +18,7 @@ export class UploadController {
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
-  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+  async uploadImage(@UploadedFile() file: any) {
     if (!file) {
       throw new BadRequestException('Nenhum arquivo foi enviado');
     }
@@ -46,7 +46,7 @@ export class UploadController {
   @Post('logo')
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
-  async uploadLogo(@UploadedFile() file: Express.Multer.File) {
+  async uploadLogo(@UploadedFile() file: any) {
     if (!file) {
       throw new BadRequestException('Nenhum arquivo foi enviado');
     }
@@ -71,7 +71,7 @@ export class UploadController {
   @Post('banner')
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
-  async uploadBanner(@UploadedFile() file: Express.Multer.File) {
+  async uploadBanner(@UploadedFile() file: any) {
     if (!file) {
       throw new BadRequestException('Nenhum arquivo foi enviado');
     }
@@ -99,7 +99,7 @@ export class UploadController {
   @Post('gallery')
   @UseInterceptors(FilesInterceptor('files', 20)) // Máximo 20 arquivos
   @HttpCode(HttpStatus.OK)
-  async uploadGallery(@UploadedFiles() files: Express.Multer.File[]) {
+  async uploadGallery(@UploadedFiles() files: any[]) {
     if (!files || files.length === 0) {
       throw new BadRequestException('Nenhum arquivo foi enviado');
     }
