@@ -69,10 +69,13 @@ export class ProductController {
 
     return products.map((product) => ({
       id: product.id,
+      establishmentId: product.establishmentId,
+      professionalId: product.professionalId,
       name: product.name,
       description: product.description,
       price: product.price,
       stock: product.stock,
+      createdAt: product.createdAt.toISOString(),
     }));
   }
 

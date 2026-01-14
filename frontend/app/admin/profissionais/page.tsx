@@ -26,6 +26,7 @@ import {
   Activity,
   User
 } from 'lucide-react';
+import { useAuth } from '@/store/auth';
 import { ApiClient } from '@/services/api';
 import { Professional, CreateProfessionalRequest } from '@/types';
 

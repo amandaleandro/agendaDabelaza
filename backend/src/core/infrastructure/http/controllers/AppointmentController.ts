@@ -111,6 +111,7 @@ export class AppointmentController {
       scheduledAt: apt.scheduledAt.toISOString(),
       status: apt.status,
       price: apt.price,
+      durationMinutes: apt.durationMinutes,
       serviceId: apt.serviceId,
       professionalId: apt.professionalId,
       createdAt: apt.createdAt.toISOString(),
@@ -133,6 +134,7 @@ export class AppointmentController {
       scheduledAt: appointment.scheduledAt.toISOString(),
       status: appointment.status,
       price: appointment.price,
+      durationMinutes: appointment.durationMinutes,
       createdAt: appointment.createdAt.toISOString(),
     }));
   }
@@ -175,6 +177,7 @@ export class AppointmentController {
       scheduledAt: appointment.scheduledAt.toISOString(),
       status: appointment.status,
       price: appointment.price,
+      durationMinutes: appointment.durationMinutes,
       serviceId: appointment.serviceId,
       professionalId: appointment.professionalId,
       createdAt: appointment.createdAt.toISOString(),

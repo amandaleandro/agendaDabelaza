@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { PlusCircle, Package, Loader2 } from 'lucide-react';
+import { useAuth } from '@/store/auth';
 import { ApiClient } from '@/services/api';
 import { Product, Professional } from '@/types';
 

@@ -31,6 +31,7 @@ export interface Professional {
 
 export interface Service {
   id: string;
+  establishmentId: string;
   professionalId: string;
   name: string;
   description: string;
@@ -41,6 +42,7 @@ export interface Service {
 
 export interface Schedule {
   id: string;
+  establishmentId: string;
   professionalId: string;
   dayOfWeek: DayOfWeek;
   startTime: string; // HH:mm
@@ -61,6 +63,7 @@ export enum DayOfWeek {
 
 export interface Product {
   id: string;
+  establishmentId: string;
   professionalId: string;
   name: string;
   description: string;
@@ -70,22 +73,20 @@ export interface Product {
 }
 
 export interface Appointment {
-  userId: any;
   id: string;
-  clientId?: string; // backwards compatibility
-  professionalId?: string; // backwards compatibility
-  serviceId?: string; // backwards compatibility
-  scheduledAt?: string; // backwards compatibility
-  date?: string; // new format
-  slot?: string; // new format
-  durationMinutes?: number;
+  userId: string;
+  establishmentId: string;
+  professionalId: string;
+  serviceId: string;
+  scheduledAt: string;
+  durationMinutes: number;
   status: AppointmentStatus;
   price: number;
   depositPayment?: Payment | null;
   items?: AppointmentItem[];
   createdAt: string;
   // Nested objects from API
-  client?: {
+  user?: {
     name: string;
     email: string;
     phone: string;

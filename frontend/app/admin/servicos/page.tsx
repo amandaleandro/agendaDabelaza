@@ -20,6 +20,7 @@ import {
   BarChart3,
   X
 } from 'lucide-react';
+import { useAuth } from '@/store/auth';
 import { ApiClient } from '@/services/api';
 import { Service, Professional, CreateServiceRequest } from '@/types';
 
