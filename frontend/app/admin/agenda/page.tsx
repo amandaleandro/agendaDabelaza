@@ -183,12 +183,12 @@ export default function AgendaPage() {
 
   const stats = {
     today: appointments.filter(apt => {
-      const aptDate = apt.date || (apt.scheduledAt ? new Date(apt.scheduledAt).toISOString().split('T')[0] : null);
+      const aptDate = apt.scheduledAt ? new Date(apt.scheduledAt).toISOString().split('T')[0] : null;
       const today = new Date().toISOString().split('T')[0];
       return aptDate === today;
     }).length,
     thisWeek: appointments.filter(apt => {
-      const aptDateStr = apt.date || (apt.scheduledAt ? new Date(apt.scheduledAt).toISOString().split('T')[0] : null);
+      const aptDateStr = apt.scheduledAt ? new Date(apt.scheduledAt).toISOString().split('T')[0] : null;
       if (!aptDateStr) return false;
       const aptDate = new Date(aptDateStr);
       const today = new Date();
@@ -197,7 +197,7 @@ export default function AgendaPage() {
       return aptDate >= weekStart && aptDate <= weekEnd;
     }).length,
     thisMonth: appointments.filter(apt => {
-      const aptDateStr = apt.date || (apt.scheduledAt ? new Date(apt.scheduledAt).toISOString().split('T')[0] : null);
+      const aptDateStr = apt.scheduledAt ? new Date(apt.scheduledAt).toISOString().split('T')[0] : null;
       if (!aptDateStr) return false;
       const aptDate = new Date(aptDateStr);
       return aptDate.getMonth() === currentDate.getMonth() && 
