@@ -51,12 +51,15 @@ export default function ProfessionalsPage() {
     phone: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (establishment) {
       setEstablishmentId(establishment.id);
     }
   }, [establishment]);
+
+  const [professionalsStats, setProfessionalsStats] = useState<Record<string, any>>({});
 
   useEffect(() => {
     loadInitialData();
@@ -77,6 +80,8 @@ export default function ProfessionalsPage() {
     try {
       const data = await api.listProfessionals();
       setProfessionals(data);
+      // Carregar stats para cada profissional
+      await loadProfessionalsStats(data);
     } catch (error) {
       console.error('Erro ao carregar profissionais:', error);
       setErrorMessage('Falha ao carregar profissionais.');
@@ -85,13 +90,42 @@ export default function ProfessionalsPage() {
     }
   };
 
-  const openModal = () => {
-    setFormData({ 
-      establishmentId: establishmentId, 
-      name: '', 
-      email: '', 
-      phone: '' 
-    });
+  const loadProfessionalsStats = async (profs: Professional[]) => {
+    const stats: Record<string, any> = {};
+    try {
+      for (const prof of profs) {
+        const response = await fetch(`/api/professionals/${prof.id}/stats`);
+        if (response.ok) {
+          stats[prof.id] = await response.json();
+        } else {
+          // Fallback: stats vazios
+          stats[prof.id] = { appointments: 0, revenue: 0, rating: 0, clients: 0 };
+        }
+      }
+      setProfessionalsStats(stats);
+    } catch (error) {
+      console.warn('Erro ao carregar stats dos profissionais:', error);
+    }
+  };
+
+  const openModal = (professional?: Professional) => {
+    if (professional) {
+      setEditingId(professional.id);
+      setFormData({ 
+        establishmentId: establishmentId, 
+        name: professional.name, 
+        email: professional.email, 
+        phone: professional.phone 
+      });
+    } else {
+      setEditingId(null);
+      setFormData({ 
+        establishmentId: establishmentId, 
+        name: '', 
+        email: '', 
+        phone: '' 
+      });
+    }
     setIsModalOpen(true);
   };
 
@@ -101,14 +135,22 @@ export default function ProfessionalsPage() {
     setErrorMessage('');
     setSuccessMessage('');
     try {
-      await api.createProfessional(formData);
-      await fetchProfessionals();
+      if (editingId) {
+        // Atualizar profissional existente
+        await api.updateProfessional(editingId, formData);
+        await fetchProfessionals();
+        setSuccessMessage('Profissional atualizado com sucesso!');
+      } else {
+        // Criar novo profissional
+        await api.createProfessional(formData);
+        await fetchProfessionals();
+        setSuccessMessage('Profissional criado com sucesso!');
+      }
       setIsModalOpen(false);
       setFormData({ establishmentId: '', name: '', email: '', phone: '' });
-      setSuccessMessage('Profissional criado com sucesso!');
     } catch (error) {
-      console.error('Erro ao criar profissional:', error);
-      setErrorMessage('Erro ao criar profissional. Verifique os dados e tente novamente.');
+      console.error('Erro ao salvar profissional:', error);
+      setErrorMessage('Erro ao salvar profissional. Verifique os dados e tente novamente.');
     } finally {
       setSubmitting(false);
     }
@@ -136,18 +178,24 @@ export default function ProfessionalsPage() {
     professional.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Generate mock stats for each professional
-  const getProfessionalStats = (id: string, index: number) => ({
-    appointments: Math.floor(Math.random() * 50) + 20,
-    revenue: Math.floor(Math.random() * 5000) + 2000,
-    rating: (4 + Math.random()).toFixed(1),
-    clients: Math.floor(Math.random() * 30) + 10,
-  });
+  // Buscar stats real do profissional
+  const getProfessionalStats = (id: string) => {
+    return professionalsStats[id] || { appointments: 0, revenue: 0, rating: 0, clients: 0 };
+  };
+
+  // Encontrar top performers baseado em atendimentos
+  const topPerformers = professionals
+    .map((p) => ({ ...p, stats: getProfessionalStats(p.id) }))
+    .sort((a, b) => b.stats.appointments - a.stats.appointments)
+    .slice(0, 2)
+    .map((p) => p.id);
 
   const totalStats = {
     professionals: professionals.length,
-    totalRevenue: professionals.reduce((sum, p, i) => sum + getProfessionalStats(p.id, i).revenue, 0),
-    avgRating: professionals.length > 0 ? (professionals.reduce((sum, p, i) => sum + parseFloat(getProfessionalStats(p.id, i).rating), 0) / professionals.length).toFixed(1) : '0.0',
+    totalRevenue: professionals.reduce((sum, p) => sum + getProfessionalStats(p.id).revenue, 0),
+    avgRating: professionals.length > 0 
+      ? (professionals.reduce((sum, p) => sum + (getProfessionalStats(p.id).rating || 0), 0) / professionals.length).toFixed(1) 
+      : '0.0',
   };
 
   const gradients = [
@@ -275,10 +323,10 @@ export default function ProfessionalsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredProfessionals.map((professional, index) => {
-            const stats = getProfessionalStats(professional.id, index);
-            const gradient = gradients[index % gradients.length];
-            const isTopPerformer = index < 2;
+          {filteredProfessionals.map((professional) => {
+            const stats = getProfessionalStats(professional.id);
+            const gradient = gradients[professionals.indexOf(professional) % gradients.length];
+            const isTopPerformer = topPerformers.includes(professional.id);
             
             return (
               <div 
@@ -306,7 +354,7 @@ export default function ProfessionalsPage() {
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                        <span className="text-sm font-semibold text-yellow-400">{stats.rating}</span>
+                        <span className="text-sm font-semibold text-yellow-400">{stats.rating.toFixed(1)}</span>
                       </div>
                       <span className="text-slate-600">•</span>
                       <div className="flex items-center gap-1 text-emerald-400">
@@ -365,12 +413,12 @@ export default function ProfessionalsPage() {
                       <Activity className="w-4 h-4 text-blue-400" />
                       <span className="text-xs text-slate-400">Performance</span>
                     </div>
-                    <span className="text-xs font-semibold text-blue-400">{Math.floor(stats.appointments / 50 * 100)}%</span>
+                    <span className="text-xs font-semibold text-blue-400">{Math.min(Math.floor((stats.appointments / 50) * 100), 100)}%</span>
                   </div>
                   <div className="w-full bg-slate-700 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.floor(stats.appointments / 50 * 100)}%` }}
+                      style={{ width: `${Math.min((stats.appointments / 50) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -383,9 +431,13 @@ export default function ProfessionalsPage() {
                     title="Ver Detalhes"
                   >
                     <TrendingUp className="w-4 h-4" />
-                    <span className="text-sm font-medium">Ver Detalhes</span>
+                    <span className="text-sm font-medium">Detalhes</span>
                   </button>
-                  <button className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 rounded-lg transition-colors" title="Editar">
+                  <button 
+                    onClick={() => openModal(professional)}
+                    className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 rounded-lg transition-colors" 
+                    title="Editar"
+                  >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
@@ -417,7 +469,9 @@ export default function ProfessionalsPage() {
                 <div className="p-2 rounded-lg bg-blue-500/10">
                   <Sparkles className="h-6 w-6 text-blue-400" />
                 </div>
-                <h2 className="text-xl font-bold text-white">Novo Profissional</h2>
+                <h2 className="text-xl font-bold text-white">
+                  {editingId ? 'Editar Profissional' : 'Novo Profissional'}
+                </h2>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -501,7 +555,7 @@ export default function ProfessionalsPage() {
                   disabled={submitting}
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
                 >
-                  {submitting ? 'Criando...' : 'Criar Profissional'}
+                  {submitting ? 'Salvando...' : editingId ? 'Atualizar Profissional' : 'Criar Profissional'}
                 </button>
               </div>
             </form>
