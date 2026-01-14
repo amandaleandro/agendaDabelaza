@@ -278,17 +278,16 @@ jobs:
             if [ ! -f .env ]; then
               echo "📝 Criando arquivo .env inicial..."
               cat > .env << ENVEOF
-            POSTGRES_PASSWORD=$(openssl rand -hex 16)
-            JWT_SECRET=$(openssl rand -hex 32)
-            JWT_EXPIRATION=24h
-            MERCADOPAGO_ACCESS_TOKEN=
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            MERCADOPAGO_ACCESS_TOKEN=${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || '/api' }}
             ENVEOF
             else
-              # Garantir que NEXT_PUBLIC_API_URL está definido no .env se estiver vazio
-              if ! grep -q "NEXT_PUBLIC_API_URL=/" .env; then
-                sed -i "s|NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || '/api' }}|" .env
-              fi
+              # Garantir variáveis críticas estão atualizadas
+              sed -i "s|DATABASE_URL=.*|DATABASE_URL=${{ secrets.DATABASE_URL }}|" .env
+              sed -i "s|JWT_SECRET=.*|JWT_SECRET=${{ secrets.JWT_SECRET }}|" .env
+              sed -i "s|NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || '/api' }}|" .env
             fi
 
             # Parar containers antigos

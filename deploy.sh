@@ -10,6 +10,21 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}🚀 Deploy Agendei - Magalu Cloud${NC}\n"
 
+# Limpeza de disco antes de iniciar
+echo -e "${YELLOW}🧹 Limpando espaço em disco...${NC}"
+docker system prune -af --volumes 2>/dev/null || true
+docker volume prune -f 2>/dev/null || true
+docker image prune -af --filter "until=72h" 2>/dev/null || true
+
+# Verificar espaço disponível
+DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+echo -e "${GREEN}💾 Uso de disco: ${DISK_USAGE}%${NC}\n"
+
+if [ "$DISK_USAGE" -gt 90 ]; then
+    echo -e "${RED}⚠️  Alerta: Disco com mais de 90% de ocupação!${NC}"
+    echo -e "${YELLOW}Execute manualmente: sudo apt-get clean && sudo journalctl --vacuum=100M${NC}\n"
+fi
+
 # Verificar se .env.production existe
 if [ ! -f .env.production ]; then
     echo -e "${RED}❌ Arquivo .env.production não encontrado!${NC}"
@@ -31,15 +46,15 @@ echo -e "${YELLOW}📦 Construindo imagens...${NC}"
 # Build Backend
 echo -e "${GREEN}Backend...${NC}"
 cd backend
-docker build -t registry.magalu.cloud/${REGISTRY_NAMESPACE}/agendei-backend:${VERSION} .
-docker push registry.magalu.cloud/${REGISTRY_NAMESPACE}/agendei-backend:${VERSION}
+docker build -t ${REGISTRY_NAMESPACE}/agendei-backend:${VERSION} .
+docker push ${REGISTRY_NAMESPACE}/agendei-backend:${VERSION}
 cd ..
 
 # Build Frontend
 echo -e "${GREEN}Frontend...${NC}"
 cd frontend
-docker build -t registry.magalu.cloud/${REGISTRY_NAMESPACE}/agendei-frontend:${VERSION} .
-docker push registry.magalu.cloud/${REGISTRY_NAMESPACE}/agendei-frontend:${VERSION}
+docker build -t ${REGISTRY_NAMESPACE}/agendei-frontend:${VERSION} .
+docker push ${REGISTRY_NAMESPACE}/agendei-frontend:${VERSION}
 cd ..
 
 echo -e "\n${YELLOW}⚙️  Configurando Nginx...${NC}"
