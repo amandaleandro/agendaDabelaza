@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/store/auth';
-import { apiClient } from '@/services/api';
+import { ApiClient } from '@/services/api';
 import { Mail, Lock, User, Building2, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+
+const apiClient = new ApiClient();
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({

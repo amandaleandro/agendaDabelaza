@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/store/auth';
-import { apiClient } from '@/services/api';
+import { ApiClient } from '@/services/api';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+
+const apiClient = new ApiClient();
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({

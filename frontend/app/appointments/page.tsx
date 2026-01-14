@@ -8,7 +8,9 @@ import Card from '@/components/Card';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
 import { Appointment, Professional, Service, Schedule } from '@/types';
-import { apiClient } from '@/services/api';
+import { ApiClient } from '@/services/api';
+
+const apiClient = new ApiClient();
 
 export default function AppointmentsPage() {
   const router = useRouter();
