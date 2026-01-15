@@ -8,7 +8,8 @@ export class PrismaService
 {
   private _payment: any;
   private _refund: any;
-    servicePlan: any;
+  private _servicePlan: any;
+
   public get refund(): any {
     return this._refund;
   }
@@ -20,6 +21,12 @@ export class PrismaService
   }
   public set payment(value: any) {
     this._payment = value;
+  }
+  public get servicePlan(): any {
+    return this._servicePlan;
+  }
+  public set servicePlan(value: any) {
+    this._servicePlan = value;
   }
   private _subscription: any;
   public get subscription(): any {
