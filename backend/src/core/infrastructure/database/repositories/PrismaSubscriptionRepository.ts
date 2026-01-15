@@ -93,12 +93,52 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
 
   async findByOwnerId(ownerId: string): Promise<Subscription | null> {
     const row = await this.prisma.subscription.findFirst({
-      where: { ownerId, status: SubscriptionStatus.ACTIVE },
+      where: { ownerId },
       orderBy: { startedAt: 'desc' },
     });
 
     if (!row) return null;
 
+    return new Subscription(
+      row.id,
+      row.ownerId,
+      row.establishmentId,
+      row.planType as PlanType,
+      row.status as SubscriptionStatus,
+      row.startedAt,
+      row.expiresAt,
+    );
+  }
+
+  async findByEstablishmentId(establishmentId: string): Promise<Subscription | null> {
+    // Buscar owner do establishment
+    const establishment = await this.prisma.establishment.findUnique({
+      where: { id: establishmentId },
+      include: { owner: true },
+    });
+
+    if (!establishment?.owner) return null;
+
+    // Buscar subscription do owner
+    const row = await this.prisma.subscription.findFirst({
+      where: { ownerId: establishment.owner.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!row) return null;
+
+    return new Subscription(
+      row.id,
+      row.ownerId,
+      row.establishmentId,
+      row.planType as PlanType,
+      row.status as SubscriptionStatus,
+      row.startedAt,
+      row.expiresAt,
+    );
+  }
+
+  private toDomain(row: any): Subscription {
     return new Subscription(
       row.id,
       row.ownerId,

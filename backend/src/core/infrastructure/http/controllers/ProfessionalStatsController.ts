@@ -29,4 +29,7 @@ export class ProfessionalStatsController {
       appointments,
       revenue: appointmentRevenue._sum.price || 0,
       clients: clients.length,
-      rating: 0, // Campo rating não existe no modelo Appointment
+      rating: 0,
+    };
+  }
+}

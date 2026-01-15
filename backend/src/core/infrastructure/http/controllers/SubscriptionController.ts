@@ -7,10 +7,17 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
+  Req,
+  Res,
 } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { CreateSubscriptionUseCase } from '../../../application/subscriptions/CreateSubscriptionUseCase';
 import { CancelSubscriptionUseCase } from '../../../application/subscriptions/CancelSubscriptionUseCase';
 import { GetEstablishmentPlanUseCase } from '../../../application/subscriptions/GetEstablishmentPlanUseCase';
+import { CreateSubscriptionPaymentUseCase } from '../../../application/subscriptions/CreateSubscriptionPaymentUseCase';
+import { ProcessSubscriptionPaymentUseCase } from '../../../application/subscriptions/ProcessSubscriptionPaymentUseCase';
+import { CheckSubscriptionStatusUseCase } from '../../../application/subscriptions/CheckSubscriptionStatusUseCase';
 import { CreateSubscriptionDto } from '../dtos/CreateSubscriptionDto';
 import { PrismaSubscriptionRepository } from '../../database/repositories/PrismaSubscriptionRepository';
 import { PlanType } from '../../../domain/entities/Plan';
@@ -79,6 +86,9 @@ export class SubscriptionController {
     private readonly createSubscriptionUseCase: CreateSubscriptionUseCase,
     private readonly cancelSubscriptionUseCase: CancelSubscriptionUseCase,
     private readonly getEstablishmentPlanUseCase: GetEstablishmentPlanUseCase,
+    private readonly createSubscriptionPaymentUseCase: CreateSubscriptionPaymentUseCase,
+    private readonly processSubscriptionPaymentUseCase: ProcessSubscriptionPaymentUseCase,
+    private readonly checkSubscriptionStatusUseCase: CheckSubscriptionStatusUseCase,
     private readonly subscriptionRepository: PrismaSubscriptionRepository,
   ) {}
 
@@ -112,13 +122,24 @@ export class SubscriptionController {
   async getEstablishmentPlan(@Param('establishmentId') establishmentId: string) {
     const plan = await this.getEstablishmentPlanUseCase.execute(establishmentId);
     
+    // Buscar assinatura ativa para pegar dados de expiração
+    const subscription = await this.subscriptionRepository.findByEstablishmentId(establishmentId);
+    
     return {
       planType: plan.planType,
       platformFeePercent: plan.platformFeePercent,
       monthlyPrice: plan.monthlyPrice,
       hasCommission: plan.hasCommission,
       features: PLAN_CONFIG[plan.planType]?.features || [],
+      expiresAt: subscription?.expiresAt?.toISOString() || null,
+      status: subscription?.status || 'ACTIVE',
     };
+  }
+
+  @Get('owner/:ownerId/status')
+  async getOwnerSubscriptionStatus(@Param('ownerId') ownerId: string) {
+    const status = await this.checkSubscriptionStatusUseCase.execute(ownerId);
+    return status;
   }
 
   // ==================== ENDPOINTS GENÉRICOS ====================
@@ -259,5 +280,109 @@ export class SubscriptionController {
         monthlyPrice: 0,
       },
     };
+  }
+
+  // ==================== ENDPOINTS DE PAGAMENTO ====================
+
+  @Post('establishment/:establishmentId/plan/payment')
+  @HttpCode(HttpStatus.OK)
+  async createPlanPayment(
+    @Param('establishmentId') establishmentId: string,
+    @Body() body: { planType: PlanType; ownerId: string },
+  ) {
+    try {
+      const result = await this.createSubscriptionPaymentUseCase.execute({
+        establishmentId,
+        ownerId: body.ownerId,
+        planType: body.planType,
+      });
+
+      return {
+        success: true,
+        payment: result,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Erro ao criar pagamento',
+      };
+    }
+  }
+
+  // Webhook do Mercado Pago
+  @Post('webhook/mercadopago')
+  @HttpCode(HttpStatus.OK)
+  async handleMercadoPagoWebhook(@Body() body: any, @Req() req: Request) {
+    console.log('Webhook recebido:', body);
+
+    try {
+      // Mercado Pago envia notificações sobre pagamentos
+      if (body.type === 'payment') {
+        const paymentId = body.data?.id;
+        
+        if (!paymentId) {
+          return { status: 'ignored' };
+        }
+
+        // Buscar informações do pagamento no Mercado Pago
+        const mercadoPagoToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+        
+        if (!mercadoPagoToken) {
+          console.warn('MERCADOPAGO_ACCESS_TOKEN não configurado');
+          return { status: 'ignored' };
+        }
+
+        const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+          headers: {
+            Authorization: `Bearer ${mercadoPagoToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar pagamento');
+        }
+
+        const paymentData = await response.json();
+        const subscriptionId = paymentData.external_reference;
+        
+        if (!subscriptionId) {
+          console.warn('Pagamento sem referência de assinatura');
+          return { status: 'ignored' };
+        }
+
+        // Processar pagamento
+        await this.processSubscriptionPaymentUseCase.execute({
+          subscriptionId,
+          mpPaymentId: paymentId,
+          status: paymentData.status === 'approved' ? 'approved' : 
+                  paymentData.status === 'rejected' ? 'rejected' : 'pending',
+        });
+
+        return { status: 'processed' };
+      }
+
+      return { status: 'ignored' };
+    } catch (error) {
+      console.error('Erro ao processar webhook:', error);
+      return { status: 'error', message: error.message };
+    }
+  }
+
+  // Callback de sucesso do pagamento (redirecionamento)
+  @Get('payment/success')
+  async paymentSuccess(@Query() query: any, @Res() res: Response) {
+    const { collection_id, external_reference } = query;
+    
+    if (collection_id && external_reference) {
+      // Processar pagamento aprovado
+      await this.processSubscriptionPaymentUseCase.execute({
+        subscriptionId: external_reference,
+        mpPaymentId: collection_id,
+        status: 'approved',
+      });
+    }
+
+    // Redirecionar para página de sucesso
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura?payment=success`);
   }
 }

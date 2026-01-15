@@ -2,7 +2,21 @@
 
 import { API_BASE_URL } from '@/config/api';
 import { useState, useEffect } from 'react';
-import { Check, X, Sparkles, Zap, Crown, Building2, ChevronRight, AlertCircle } from 'lucide-react';
+import { 
+  Check, 
+  X, 
+  Sparkles, 
+  Zap, 
+  Crown, 
+  Building2, 
+  ChevronRight, 
+  AlertCircle,
+  Calendar,
+  Clock,
+  CreditCard,
+  AlertTriangle,
+  ExternalLink
+} from 'lucide-react';
 
 interface Plan {
   id: string;
@@ -19,10 +33,24 @@ interface CurrentSubscription {
   monthlyPrice: number;
   hasCommission: boolean;
   features: string[];
+  expiresAt: string | null;
+  status: string;
+}
+
+interface SubscriptionStatus {
+  isActive: boolean;
+  isExpired: boolean;
+  isPending: boolean;
+  isOverdue: boolean;
+  expiresAt: string | null;
+  daysUntilExpiration: number | null;
+  planType: string;
+  status: string;
 }
 
 export default function AssinaturaPage() {
   const [currentPlan, setCurrentPlan] = useState<CurrentSubscription | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -35,33 +63,39 @@ export default function AssinaturaPage() {
 
   useEffect(() => {
     const estId = localStorage.getItem('establishmentId') || '';
-    const owId = localStorage.getItem('ownerId') || '';
+    const owId = localStorage.getItem('ownerId') || localStorage.getItem('userId') || '';
     setEstablishmentId(estId);
     setOwnerId(owId);
   }, []);
 
   useEffect(() => {
-    if (establishmentId) {
+    if (establishmentId && ownerId) {
       loadData();
     }
-  }, [establishmentId]);
+  }, [establishmentId, ownerId]);
 
   const loadData = async () => {
     setLoading(true);
     setError('');
     
     try {
-      // Buscar plano atual
-      const currentResponse = await fetch(
-        `${API_BASE_URL}/subscriptions/establishment/${establishmentId}`
-      );
+      // Buscar plano atual e status
+      const [currentResponse, statusResponse, plansResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/subscriptions/establishment/${establishmentId}`),
+        fetch(`${API_BASE_URL}/subscriptions/owner/${ownerId}/status`),
+        fetch(`${API_BASE_URL}/subscriptions/plans`),
+      ]);
+
       if (currentResponse.ok) {
         const current = await currentResponse.json();
         setCurrentPlan(current);
       }
 
-      // Buscar planos disponíveis
-      const plansResponse = await fetch(`${API_BASE_URL}/subscriptions/plans`);
+      if (statusResponse.ok) {
+        const status = await statusResponse.json();
+        setSubscriptionStatus(status);
+      }
+
       if (plansResponse.ok) {
         const data = await plansResponse.json();
         setPlans(data.plans || []);
@@ -92,28 +126,53 @@ export default function AssinaturaPage() {
     setSuccess('');
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/subscriptions/establishment/${establishmentId}/plan`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            planType: selectedPlan.id,
-            ownerId: ownerId,
-          }),
+      // Se for plano FREE, apenas trocar sem pagamento
+      if (selectedPlan.id === 'FREE') {
+        const response = await fetch(
+          `${API_BASE_URL}/subscriptions/establishment/${establishmentId}/plan`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              planType: selectedPlan.id,
+              ownerId: ownerId,
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setSuccess(`Plano alterado para ${selectedPlan.name} com sucesso!`);
+          setShowModal(false);
+          setTimeout(() => {
+            loadData();
+          }, 1500);
+        } else {
+          setError(data.message || 'Erro ao alterar plano');
         }
-      );
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setSuccess(`Plano alterado para ${selectedPlan.name} com sucesso!`);
-        setShowModal(false);
-        setTimeout(() => {
-          loadData();
-        }, 1500);
       } else {
-        setError(data.message || 'Erro ao alterar plano');
+        // Para planos pagos, criar preferência de pagamento
+        const response = await fetch(
+          `${API_BASE_URL}/subscriptions/establishment/${establishmentId}/plan/payment`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              planType: selectedPlan.id,
+              ownerId: ownerId,
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Redirecionar para o checkout do Mercado Pago
+          window.location.href = data.payment.initPoint;
+        } else {
+          setError(data.message || 'Erro ao processar pagamento');
+        }
       }
     } catch (err: any) {
       console.error('Erro:', err);
@@ -214,6 +273,48 @@ export default function AssinaturaPage() {
           </div>
         )}
 
+        {/* Alerta de Inadimplência */}
+        {subscriptionStatus?.isOverdue && (
+          <div className="mb-6 bg-red-500/10 border border-red-500 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="w-6 h-6 text-red-500 flex-shrink-0" />
+            <div>
+              <h3 className="text-red-400 font-semibold mb-1">Plano Expirado - Ação Necessária!</h3>
+              <p className="text-red-300 text-sm">
+                Seu plano expirou. Renove agora para continuar aproveitando todos os benefícios.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Alerta de Expiração Próxima */}
+        {subscriptionStatus?.daysUntilExpiration !== null && 
+         subscriptionStatus.daysUntilExpiration > 0 && 
+         subscriptionStatus.daysUntilExpiration <= 7 && (
+          <div className="mb-6 bg-amber-500/10 border border-amber-500 rounded-lg p-4 flex items-start gap-3">
+            <Clock className="w-6 h-6 text-amber-500 flex-shrink-0" />
+            <div>
+              <h3 className="text-amber-400 font-semibold mb-1">Plano Expirando em Breve</h3>
+              <p className="text-amber-300 text-sm">
+                Seu plano expira em {subscriptionStatus.daysUntilExpiration} {subscriptionStatus.daysUntilExpiration === 1 ? 'dia' : 'dias'}. 
+                Renove para continuar sem interrupções.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Alerta de Pendente */}
+        {subscriptionStatus?.isPending && (
+          <div className="mb-6 bg-blue-500/10 border border-blue-500 rounded-lg p-4 flex items-start gap-3">
+            <CreditCard className="w-6 h-6 text-blue-500 flex-shrink-0" />
+            <div>
+              <h3 className="text-blue-400 font-semibold mb-1">Pagamento Pendente</h3>
+              <p className="text-blue-300 text-sm">
+                Aguardando confirmação do pagamento. Isso pode levar alguns minutos.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Plano Atual */}
         {currentPlan && (
           <div className={`mb-8 rounded-xl bg-gradient-to-br ${getPlanColor(currentPlan.planType)} p-1`}>
@@ -228,6 +329,44 @@ export default function AssinaturaPage() {
                       </h2>
                       <p className="text-slate-400">Seu plano atual</p>
                     </div>
+                  </div>
+                  
+                  {/* Status e Expiração */}
+                  <div className="mt-3 flex flex-col gap-2">
+                    {subscriptionStatus?.expiresAt && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                        <span className="text-slate-300">
+                          Expira em: {new Date(subscriptionStatus.expiresAt).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    )}
+                    {subscriptionStatus?.daysUntilExpiration !== null && subscriptionStatus.daysUntilExpiration > 0 && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="w-4 h-4 text-slate-400" />
+                        <span className={`font-medium ${
+                          subscriptionStatus.daysUntilExpiration <= 7 ? 'text-amber-400' : 'text-green-400'
+                        }`}>
+                          {subscriptionStatus.daysUntilExpiration} {subscriptionStatus.daysUntilExpiration === 1 ? 'dia' : 'dias'} restantes
+                        </span>
+                      </div>
+                    )}
+                    {subscriptionStatus?.isOverdue && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <AlertTriangle className="w-4 h-4 text-red-400" />
+                        <span className="text-red-400 font-semibold">
+                          Inadimplente - Renove seu plano
+                        </span>
+                      </div>
+                    )}
+                    {subscriptionStatus?.isPending && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <CreditCard className="w-4 h-4 text-blue-400" />
+                        <span className="text-blue-400 font-medium">
+                          Pagamento pendente
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -374,11 +513,19 @@ export default function AssinaturaPage() {
                   <p className="text-slate-300">Mudança imediata - começa a valer agora</p>
                 </div>
                 <div className="flex items-start gap-2 text-sm">
-                  <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <CreditCard className="w-5 h-5 text-blue-500 flex-shrink-0" />
                   <p className="text-slate-300">
-                    Cobrança proporcional: R$ {selectedPlan.price.toFixed(2)}/mês
+                    Valor: R$ {selectedPlan.price.toFixed(2)}/mês
                   </p>
                 </div>
+                {selectedPlan.id !== 'FREE' && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <ExternalLink className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                    <p className="text-purple-300">
+                      Você será redirecionado para o Mercado Pago para finalizar o pagamento
+                    </p>
+                  </div>
+                )}
                 {selectedPlan.platformFeePercent === 0 ? (
                   <div className="flex items-start gap-2 text-sm">
                     <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
@@ -405,9 +552,21 @@ export default function AssinaturaPage() {
                 <button
                   onClick={handleConfirmChange}
                   disabled={processingChange}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {processingChange ? 'Processando...' : 'Confirmar'}
+                  {processingChange ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Processando...
+                    </>
+                  ) : selectedPlan.id === 'FREE' ? (
+                    'Confirmar'
+                  ) : (
+                    <>
+                      Pagar Agora
+                      <ExternalLink className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
