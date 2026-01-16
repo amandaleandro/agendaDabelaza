@@ -314,7 +314,7 @@ export default function ProfessionalsPage() {
           </p>
           {!searchTerm && (
             <button 
-              onClick={openModal}
+              onClick={() => openModal()}
               className="text-blue-400 hover:text-blue-300 font-semibold"
             >
               Adicionar primeiro profissional →
