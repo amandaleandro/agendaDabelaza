@@ -32,6 +32,13 @@ jobs:
         run: |
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
+      - name: Pre-pull base images with retry
+        run: |
+          for i in {1..4}; do
+            docker pull node:20-alpine && break
+            echo "retry $i/4" && sleep 10
+          done
+
       - name: Build & push backend image
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
