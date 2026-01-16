@@ -66,7 +66,7 @@ export default function UsersPage() {
           phone: c.phone,
           createdAt: c.createdAt,
           role: 'client' as const,
-          status: c.blocked ? 'suspended' : 'active',
+          status: (c.blocked ? 'suspended' : 'active') as 'active' | 'inactive' | 'suspended',
           blocked: c.blocked || false,
           establishments: []
         })),
@@ -77,7 +77,7 @@ export default function UsersPage() {
           phone: p.phone,
           createdAt: p.createdAt,
           role: 'professional' as const,
-          status: 'active' as const,
+          status: 'active' as 'active' | 'inactive' | 'suspended',
           blocked: false,
           establishments: []
         }))

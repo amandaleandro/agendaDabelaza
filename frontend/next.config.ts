@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
+  turbopack: {
+    // Define explicit workspace root to silence multiple lockfiles warning
+    root: __dirname,
+  },
 };
 
 export default nextConfig;
