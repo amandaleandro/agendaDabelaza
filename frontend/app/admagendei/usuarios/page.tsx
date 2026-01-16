@@ -401,7 +401,6 @@ export default function UsersPage() {
           </table>
         </div>
       </div>
-    </div>
 
     {/* Modal de Detalhes */}
     {showModal && selectedUser && (
