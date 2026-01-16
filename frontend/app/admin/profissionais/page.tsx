@@ -275,7 +275,7 @@ export default function ProfessionalsPage() {
 
         {/* Add Button */}
         <button 
-          onClick={openModal}
+          onClick={() => openModal()}
           className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30"
         >
           <Plus className="w-5 h-5" />
