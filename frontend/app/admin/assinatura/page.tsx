@@ -287,7 +287,8 @@ export default function AssinaturaPage() {
         )}
 
         {/* Alerta de Expiração Próxima */}
-        {subscriptionStatus?.daysUntilExpiration !== null && 
+        {subscriptionStatus && 
+         subscriptionStatus.daysUntilExpiration !== null && 
          subscriptionStatus.daysUntilExpiration > 0 && 
          subscriptionStatus.daysUntilExpiration <= 7 && (
           <div className="mb-6 bg-amber-500/10 border border-amber-500 rounded-lg p-4 flex items-start gap-3">
