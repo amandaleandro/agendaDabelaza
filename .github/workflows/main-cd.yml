@@ -53,10 +53,10 @@ jobs:
       - name: Build & push frontend image
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          # Usamos /api por padrão para funcionar em qualquer domínio/IP via Nginx
-          API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || '/api' }}
+          API_URL_SECRET: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          API_URL="${API_URL_SECRET:-/api}"
           echo "Building frontend with API_URL: $API_URL"
           docker build \
             --build-arg NEXT_PUBLIC_API_URL="$API_URL" \
