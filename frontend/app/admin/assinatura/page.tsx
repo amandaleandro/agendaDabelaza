@@ -79,12 +79,17 @@ export default function AssinaturaPage() {
     setError('');
     
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
       // Buscar plano atual e status
       const [currentResponse, statusResponse, plansResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/subscriptions/establishment/${establishmentId}`),
-        fetch(`${API_BASE_URL}/subscriptions/owner/${ownerId}/status`),
-        fetch(`${API_BASE_URL}/subscriptions/plans`),
+        fetch(`${API_BASE_URL}/subscriptions/establishment/${establishmentId}`, { signal: controller.signal }),
+        fetch(`${API_BASE_URL}/subscriptions/owner/${ownerId}/status`, { signal: controller.signal }),
+        fetch(`${API_BASE_URL}/subscriptions/plans`, { signal: controller.signal }),
       ]);
+
+      clearTimeout(timeoutId);
 
       if (currentResponse.ok) {
         const current = await currentResponse.json();
@@ -102,7 +107,11 @@ export default function AssinaturaPage() {
       }
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
-      setError('Erro ao carregar informações da assinatura');
+      if (err.name === 'AbortError') {
+        setError('Tempo de resposta excedido. Verifique sua conexão.');
+      } else {
+        setError('Erro ao carregar informações da assinatura');
+      }
     } finally {
       setLoading(false);
     }
