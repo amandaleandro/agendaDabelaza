@@ -21,7 +21,7 @@ import {
   Copy,
   ExternalLink,
 } from 'lucide-react';
-import { getAppUrl } from '@/config/api';
+import { getAppUrl, API_BASE_URL } from '@/config/api';
 import { ApiClient } from '@/services/api';
 import { useAuth } from '@/store/auth';
 
@@ -138,8 +138,9 @@ export default function AdminLandingPage() {
 
   const loadLandingConfigFromServer = async (establishmentId: string) => {
     try {
-      const apiUrl = getAppUrl();
-      const response = await fetch(`${apiUrl}/establishments/${establishmentId}/landing-config`);
+      const response = await fetch(`${API_BASE_URL}/establishments/${establishmentId}/landing-config`, {
+        signal: AbortSignal.timeout(5000)
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -209,8 +210,7 @@ export default function AdminLandingPage() {
     setSaving(true);
     try {
       // Salvar no banco via API
-      const apiUrl = getAppUrl();
-      const response = await fetch(`${apiUrl}/establishments/${establishment?.id}/landing-config`, {
+      const response = await fetch(`${API_BASE_URL}/establishments/${establishment?.id}/landing-config`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
