@@ -342,7 +342,8 @@ export default function AssinaturaPage() {
                         </span>
                       </div>
                     )}
-                    {subscriptionStatus?.daysUntilExpiration !== null && subscriptionStatus.daysUntilExpiration > 0 && (
+                    {subscriptionStatus &&
+                     subscriptionStatus.daysUntilExpiration !== null && subscriptionStatus.daysUntilExpiration > 0 && (
                       <div className="flex items-center gap-2 text-sm">
                         <Clock className="w-4 h-4 text-slate-400" />
                         <span className={`font-medium ${
