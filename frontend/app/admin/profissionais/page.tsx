@@ -94,11 +94,20 @@ export default function ProfessionalsPage() {
     const stats: Record<string, any> = {};
     try {
       for (const prof of profs) {
-        const response = await fetch(`/api/professionals/${prof.id}/stats`);
-        if (response.ok) {
-          stats[prof.id] = await response.json();
-        } else {
-          // Fallback: stats vazios
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const response = await fetch(`/api/professionals/${prof.id}/stats`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (response.ok) {
+            stats[prof.id] = await response.json();
+          } else {
+            stats[prof.id] = { appointments: 0, revenue: 0, rating: 0, clients: 0 };
+          }
+        } catch {
+          // Fallback para este profissional
           stats[prof.id] = { appointments: 0, revenue: 0, rating: 0, clients: 0 };
         }
       }
