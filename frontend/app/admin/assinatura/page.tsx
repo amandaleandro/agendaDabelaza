@@ -79,39 +79,46 @@ export default function AssinaturaPage() {
     setError('');
     
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-      
-      // Buscar plano atual e status
-      const [currentResponse, statusResponse, plansResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/subscriptions/establishment/${establishmentId}`, { signal: controller.signal }),
-        fetch(`${API_BASE_URL}/subscriptions/owner/${ownerId}/status`, { signal: controller.signal }),
-        fetch(`${API_BASE_URL}/subscriptions/plans`, { signal: controller.signal }),
+      // Carregar planos primeiro (é crítico)
+      try {
+        const plansResponse = await fetch(`${API_BASE_URL}/subscriptions/plans`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (plansResponse.ok) {
+          const data = await plansResponse.json();
+          setPlans(data.plans || []);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar planos:', err);
+      }
+
+      // Carregar dados da assinatura em paralelo
+      const results = await Promise.allSettled([
+        fetch(`${API_BASE_URL}/subscriptions/establishment/${establishmentId}`, {
+          signal: AbortSignal.timeout(5000),
+        }).then(r => r.json()).catch(() => null),
+        fetch(`${API_BASE_URL}/subscriptions/owner/${ownerId}/status`, {
+          signal: AbortSignal.timeout(5000),
+        }).then(r => r.json()).catch(() => null),
       ]);
 
-      clearTimeout(timeoutId);
+      const [currentResult, statusResult] = results;
 
-      if (currentResponse.ok) {
-        const current = await currentResponse.json();
-        setCurrentPlan(current);
+      if (currentResult.status === 'fulfilled' && currentResult.value) {
+        setCurrentPlan(currentResult.value);
       }
 
-      if (statusResponse.ok) {
-        const status = await statusResponse.json();
-        setSubscriptionStatus(status);
+      if (statusResult.status === 'fulfilled' && statusResult.value) {
+        setSubscriptionStatus(statusResult.value);
       }
 
-      if (plansResponse.ok) {
-        const data = await plansResponse.json();
-        setPlans(data.plans || []);
+      // Se nenhum dado foi carregado, mostrar erro
+      if (!plans.length) {
+        setError('Não foi possível carregar informações da assinatura. Tente novamente.');
       }
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
-      if (err.name === 'AbortError') {
-        setError('Tempo de resposta excedido. Verifique sua conexão.');
-      } else {
-        setError('Erro ao carregar informações da assinatura');
-      }
+      setError('Erro ao carregar informações da assinatura');
     } finally {
       setLoading(false);
     }
