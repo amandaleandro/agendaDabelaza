@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
       }
 
       // Chama API de login
-      const response = await fetch('${API_BASE_URL}/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
