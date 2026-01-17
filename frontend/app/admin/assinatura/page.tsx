@@ -1,6 +1,7 @@
 'use client';
 
 import { API_BASE_URL } from '@/config/api';
+import { useAuth } from '@/store/auth';
 import { useState, useEffect } from 'react';
 import { 
   Check, 
@@ -49,6 +50,7 @@ interface SubscriptionStatus {
 }
 
 export default function AssinaturaPage() {
+  const { establishment, user, loadFromStorage } = useAuth();
   const [currentPlan, setCurrentPlan] = useState<CurrentSubscription | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -61,19 +63,43 @@ export default function AssinaturaPage() {
   const [establishmentId, setEstablishmentId] = useState('');
   const [ownerId, setOwnerId] = useState('');
 
+  // Hidratar store caso já exista token salvo (não adicionar loadFromStorage às deps)
   useEffect(() => {
-    const estId = localStorage.getItem('establishmentId') || '';
-    const owId = localStorage.getItem('ownerId') || localStorage.getItem('userId') || '';
-    setEstablishmentId(estId);
-    setOwnerId(owId);
+    try {
+      const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
+      if (hasToken) {
+        loadFromStorage();
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
-    if (!establishmentId || !ownerId) {
-      setLoading(false);
-      setError('Estabelecimento ou proprietário não encontrados. Faça login novamente.');
-      return;
+    let estId = localStorage.getItem('establishmentId') || '';
+    let owId = localStorage.getItem('ownerId') || localStorage.getItem('userId') || '';
+
+    // Fallback: tentar do localStorage estruturado
+    if (!estId) {
+      const estStr = localStorage.getItem('establishment');
+      if (estStr) {
+        try { estId = JSON.parse(estStr)?.id || ''; } catch {}
+      }
     }
+    if (!owId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try { owId = JSON.parse(userStr)?.id || ''; } catch {}
+      }
+    }
+
+    // Fallback: tentar do store
+    if (!estId && establishment?.id) estId = establishment.id;
+    if (!owId && user?.id) owId = user.id;
+
+    setEstablishmentId(estId);
+    setOwnerId(owId);
+  }, [establishment?.id, user?.id]);
+
+  useEffect(() => {
     loadData();
   }, [establishmentId, ownerId]);
 
@@ -83,6 +109,11 @@ export default function AssinaturaPage() {
     
     try {
       let loadedSomething = false;
+
+      // Se IDs faltando, informar mas seguir com planos
+      if (!establishmentId || !ownerId) {
+        setError('Estabelecimento ou proprietário não encontrados. Faça login novamente.');
+      }
 
       // Carregar planos primeiro (é crítico)
       try {
@@ -100,24 +131,42 @@ export default function AssinaturaPage() {
         console.error('Erro ao carregar planos:', err);
       }
 
-      // Carregar dados da assinatura em paralelo
-      const results = await Promise.allSettled([
-        fetch(`${API_BASE_URL}/subscriptions/establishment/${establishmentId}`, {
-          signal: AbortSignal.timeout(5000),
-        }).then(async (r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch(`${API_BASE_URL}/subscriptions/owner/${ownerId}/status`, {
-          signal: AbortSignal.timeout(5000),
-        }).then(async (r) => (r.ok ? r.json() : null)).catch(() => null),
-      ]);
+      // Carregar dados da assinatura em paralelo (apenas se IDs disponíveis)
+      const parallel: Promise<any>[] = [];
+      if (establishmentId) {
+        parallel.push(
+          fetch(`${API_BASE_URL}/subscriptions/establishment/${establishmentId}`, {
+            signal: AbortSignal.timeout(5000),
+          }).then(async (r) => (r.ok ? r.json() : null)).catch(() => null)
+        );
+      }
+      if (ownerId) {
+        parallel.push(
+          fetch(`${API_BASE_URL}/subscriptions/owner/${ownerId}/status`, {
+            signal: AbortSignal.timeout(5000),
+          }).then(async (r) => (r.ok ? r.json() : null)).catch(() => null)
+        );
+      }
 
-      const [currentResult, statusResult] = results;
+      const results = await Promise.allSettled(parallel);
 
-      if (currentResult.status === 'fulfilled' && currentResult.value) {
+      // Mapear resultados conforme ordem dos pushes
+      let currentResult: PromiseSettledResult<any> | undefined;
+      let statusResult: PromiseSettledResult<any> | undefined;
+      if (establishmentId && ownerId) {
+        [currentResult, statusResult] = results;
+      } else if (establishmentId) {
+        [currentResult] = results;
+      } else if (ownerId) {
+        [statusResult] = results;
+      }
+
+      if (currentResult && currentResult.status === 'fulfilled' && currentResult.value) {
         setCurrentPlan(currentResult.value);
         loadedSomething = true;
       }
 
-      if (statusResult.status === 'fulfilled' && statusResult.value) {
+      if (statusResult && statusResult.status === 'fulfilled' && statusResult.value) {
         setSubscriptionStatus(statusResult.value);
         loadedSomething = true;
       }
