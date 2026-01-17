@@ -62,6 +62,7 @@ export default function AssinaturaPage() {
   const [success, setSuccess] = useState('');
   const [establishmentId, setEstablishmentId] = useState('');
   const [ownerId, setOwnerId] = useState('');
+  const searchParams = useSearchParams();
 
   // Hidratar store caso já exista token salvo (não adicionar loadFromStorage às deps)
   useEffect(() => {
@@ -102,6 +103,24 @@ export default function AssinaturaPage() {
   useEffect(() => {
     loadData();
   }, [establishmentId, ownerId]);
+
+  // Mensagens vindas do fluxo de pagamento
+  useEffect(() => {
+    const p = searchParams.get('payment');
+    if (p === 'success') {
+      setSuccess('Pagamento aprovado! Seu plano foi atualizado.');
+      // Recarrega dados do plano após sucesso
+      loadData();
+    }
+    if (p === 'failure') {
+      setError('Pagamento não aprovado. Tente novamente.');
+    }
+    if (p === 'pending') {
+      setError('Pagamento pendente. Aguarde a confirmação.');
+    }
+    // não adicionar searchParams nas deps para evitar re-render desnecessário
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
