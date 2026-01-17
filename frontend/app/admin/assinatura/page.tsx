@@ -69,9 +69,12 @@ export default function AssinaturaPage() {
   }, []);
 
   useEffect(() => {
-    if (establishmentId && ownerId) {
-      loadData();
+    if (!establishmentId || !ownerId) {
+      setLoading(false);
+      setError('Estabelecimento ou proprietário não encontrados. Faça login novamente.');
+      return;
     }
+    loadData();
   }, [establishmentId, ownerId]);
 
   const loadData = async () => {
@@ -79,6 +82,8 @@ export default function AssinaturaPage() {
     setError('');
     
     try {
+      let loadedSomething = false;
+
       // Carregar planos primeiro (é crítico)
       try {
         const plansResponse = await fetch(`${API_BASE_URL}/subscriptions/plans`, {
@@ -87,6 +92,9 @@ export default function AssinaturaPage() {
         if (plansResponse.ok) {
           const data = await plansResponse.json();
           setPlans(data.plans || []);
+          if (data.plans && data.plans.length) {
+            loadedSomething = true;
+          }
         }
       } catch (err) {
         console.error('Erro ao carregar planos:', err);
@@ -96,24 +104,26 @@ export default function AssinaturaPage() {
       const results = await Promise.allSettled([
         fetch(`${API_BASE_URL}/subscriptions/establishment/${establishmentId}`, {
           signal: AbortSignal.timeout(5000),
-        }).then(r => r.json()).catch(() => null),
+        }).then(async (r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${API_BASE_URL}/subscriptions/owner/${ownerId}/status`, {
           signal: AbortSignal.timeout(5000),
-        }).then(r => r.json()).catch(() => null),
+        }).then(async (r) => (r.ok ? r.json() : null)).catch(() => null),
       ]);
 
       const [currentResult, statusResult] = results;
 
       if (currentResult.status === 'fulfilled' && currentResult.value) {
         setCurrentPlan(currentResult.value);
+        loadedSomething = true;
       }
 
       if (statusResult.status === 'fulfilled' && statusResult.value) {
         setSubscriptionStatus(statusResult.value);
+        loadedSomething = true;
       }
 
       // Se nenhum dado foi carregado, mostrar erro
-      if (!plans.length) {
+      if (!loadedSomething) {
         setError('Não foi possível carregar informações da assinatura. Tente novamente.');
       }
     } catch (err: any) {

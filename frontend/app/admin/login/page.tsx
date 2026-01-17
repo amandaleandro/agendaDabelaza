@@ -47,19 +47,23 @@ export default function AdminLoginPage() {
 
       const data = await response.json();
       
-      login(data.token, {
-        id: data.owner.id,
-        name: data.owner.name,
-        email: data.owner.email,
-      });
-      
+      login(
+        data.token,
+        {
+          id: data.owner.id,
+          name: data.owner.name,
+          email: data.owner.email,
+        },
+        data.establishment
+      );
+
       // Salvar dados do estabelecimento no localStorage
       if (data.establishment) {
         localStorage.setItem('establishmentId', data.establishment.id);
         localStorage.setItem('establishmentName', data.establishment.name);
         localStorage.setItem('establishmentSlug', data.establishment.slug);
       }
-      
+
       // Salvar ownerId para facilitar chamadas de API
       localStorage.setItem('ownerId', data.owner.id);
       
