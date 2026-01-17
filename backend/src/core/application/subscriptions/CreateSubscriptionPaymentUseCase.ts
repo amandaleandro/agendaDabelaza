@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../infrastructure/database/prisma/PrismaService';
 import { PlanType } from '../../domain/entities/Plan';
 
@@ -38,7 +39,9 @@ export class CreateSubscriptionPaymentUseCase {
     // Criar assinatura pendente
     const subscription = await this.prisma.subscription.create({
       data: {
+        id: randomUUID(),
         ownerId: input.ownerId,
+        establishmentId: input.establishmentId,
         planType: input.planType,
         status: 'PENDING',
         startedAt: new Date(),
