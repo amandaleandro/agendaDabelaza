@@ -124,8 +124,6 @@ export default function AdminLandingPage() {
 
   // Recupera estabelecimento logado da store
   useEffect(() => {
-    loadFromStorage();
-    
     if (establishment?.slug) {
       setEstablishmentSlug(establishment.slug);
       setEstablishmentName(establishment.name);
@@ -134,7 +132,7 @@ export default function AdminLandingPage() {
       // Carregar cores salvas do banco
       loadLandingConfigFromServer(establishment.id);
     }
-  }, [establishment, loadFromStorage]);
+  }, [establishment?.slug, establishment?.id, establishment?.name]);
 
   const loadLandingConfigFromServer = async (establishmentId: string) => {
     try {
