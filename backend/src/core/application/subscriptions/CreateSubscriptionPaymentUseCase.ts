@@ -49,18 +49,6 @@ export class CreateSubscriptionPaymentUseCase {
       },
     });
 
-    // Criar registro de pagamento pendente
-    const payment = await this.prisma.payment.create({
-      data: {
-        amount: amount,
-        status: 'PENDING',
-        type: 'FULL',
-        appointmentId: null, // Pagamento de assinatura não tem appointment
-        mpPaymentId: null,
-        mpPreferenceId: null,
-      },
-    });
-
     // Configurar preferência do Mercado Pago
     const mercadoPagoToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     
@@ -69,9 +57,9 @@ export class CreateSubscriptionPaymentUseCase {
       
       // Modo simulação: retornar dados fake
       return {
-        paymentId: payment.id,
-        preferenceId: 'SIMULATED_' + payment.id,
-        initPoint: `/admin/assinatura/payment-success?subscription_id=${subscription.id}&payment_id=${payment.id}`,
+        paymentId: 'SIMULATED',
+        preferenceId: 'SIMULATED_' + subscription.id,
+        initPoint: `/admin/assinatura/payment-success?subscription_id=${subscription.id}`,
         subscriptionId: subscription.id,
         amount: amount,
       };
@@ -98,7 +86,6 @@ export class CreateSubscriptionPaymentUseCase {
         notification_url: `${process.env.API_URL || 'http://localhost:3001'}/api/subscriptions/webhook/mercadopago`,
         metadata: {
           subscription_id: subscription.id,
-          payment_id: payment.id,
           establishment_id: input.establishmentId,
           owner_id: input.ownerId,
         },
@@ -120,16 +107,8 @@ export class CreateSubscriptionPaymentUseCase {
 
       const preference = await response.json();
 
-      // Atualizar payment com preferenceId
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          mpPreferenceId: preference.id,
-        },
-      });
-
       return {
-        paymentId: payment.id,
+        paymentId: preference.id,
         preferenceId: preference.id,
         initPoint: preference.init_point,
         subscriptionId: subscription.id,
@@ -138,15 +117,10 @@ export class CreateSubscriptionPaymentUseCase {
     } catch (error) {
       console.error('Erro ao criar preferência do Mercado Pago:', error);
       
-      // Cancelar subscription e payment em caso de erro
+      // Cancelar subscription em caso de erro
       await this.prisma.subscription.update({
         where: { id: subscription.id },
         data: { status: 'CANCELLED' },
-      });
-      
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: 'FAILED' },
       });
 
       throw new Error('Erro ao processar pagamento. Tente novamente.');
