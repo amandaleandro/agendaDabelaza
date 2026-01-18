@@ -7,11 +7,13 @@ import {
   HttpStatus,
   NotFoundException,
   ConflictException,
+  BadRequestException,
   Post,
   Put,
   Param,
 } from '@nestjs/common';
 import { CreateProfessionalUseCase } from '../../../application/professionals/CreateProfessionalUseCase';
+import { DeleteProfessionalUseCase } from '../../../application/professionals/DeleteProfessionalUseCase';
 import { CreateServiceUseCase } from '../../../application/services/CreateServiceUseCase';
 import { CreateProfessionalDto } from '../dtos/CreateProfessionalDto';
 import { CreateServiceDto } from '../dtos/CreateServiceDto';
@@ -24,6 +26,7 @@ import { PrismaProductRepository } from '../../database/repositories/PrismaProdu
 export class ProfessionalController {
   constructor(
     private readonly createProfessionalUseCase: CreateProfessionalUseCase,
+    private readonly deleteProfessionalUseCase: DeleteProfessionalUseCase,
     private readonly createServiceUseCase: CreateServiceUseCase,
     private readonly professionalRepository: PrismaProfessionalRepository,
     private readonly serviceRepository: PrismaServiceRepository,
@@ -165,13 +168,25 @@ export class ProfessionalController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
-    const professional = await this.professionalRepository.findById(id);
+    try {
+      await this.deleteProfessionalUseCase.execute({
+        professionalId: id,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message ===
+          'Cannot delete professional with active schedules. Delete schedules first.'
+      ) {
+        throw new BadRequestException(error.message);
+      }
 
-    if (!professional) {
-      throw new NotFoundException('Professional not found');
+      if (error instanceof Error && error.message === 'Professional not found') {
+        throw new NotFoundException(error.message);
+      }
+
+      throw error;
     }
-
-    await this.professionalRepository.delete(id);
   }
 
   @Post(':id/services')

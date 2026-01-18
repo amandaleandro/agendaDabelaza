@@ -1,10 +1,13 @@
 import { randomUUID } from 'crypto';
 import { Professional } from '../../domain/entities/Professional';
 import { ProfessionalRepository } from '../../domain/repositories/ProfessionalRepository';
+import { Schedule, DayOfWeek } from '../../domain/entities/Schedule';
+import { ScheduleRepository } from '../../domain/repositories/ScheduleRepository';
 
 export class CreateProfessionalUseCase {
   constructor(
     private readonly professionalRepository: ProfessionalRepository,
+    private readonly scheduleRepository: ScheduleRepository,
   ) {}
 
   async execute(input: {
@@ -43,6 +46,31 @@ export class CreateProfessionalUseCase {
     });
 
     await this.professionalRepository.save(professional);
+
+    // Create default schedules (9 AM to 6 PM, Monday to Friday)
+    const defaultSchedules = [
+      DayOfWeek.MONDAY,
+      DayOfWeek.TUESDAY,
+      DayOfWeek.WEDNESDAY,
+      DayOfWeek.THURSDAY,
+      DayOfWeek.FRIDAY,
+    ].map((dayOfWeek) =>
+      Schedule.create({
+        id: randomUUID(),
+        establishmentId: input.establishmentId,
+        professionalId: professional.id,
+        dayOfWeek,
+        startTime: '09:00',
+        endTime: '18:00',
+        isAvailable: true,
+      }),
+    );
+
+    await this.scheduleRepository.replaceForProfessional(
+      professional.id,
+      defaultSchedules,
+    );
+
     return professional;
   }
 }

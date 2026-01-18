@@ -5,7 +5,7 @@ import { PrismaServiceRepository } from '../core/infrastructure/database/reposit
 import { PrismaScheduleRepository } from '../core/infrastructure/database/repositories/PrismaScheduleRepository';
 import { PrismaProductRepository } from '../core/infrastructure/database/repositories/PrismaProductRepository';
 import { CreateProfessionalUseCase } from '../core/application/professionals/CreateProfessionalUseCase';
-import { CreateServiceUseCase } from '../core/application/services/CreateServiceUseCase';
+import { DeleteProfessionalUseCase } from '../core/application/professionals/DeleteProfessionalUseCase';import { DeleteProfessionalUseCase } from '../core/application/professionals/DeleteProfessionalUseCase';import { CreateServiceUseCase } from '../core/application/services/CreateServiceUseCase';
 import { ListProfessionalServicesUseCase } from '../core/application/services/ListProfessionalServicesUseCase';
 import { SetScheduleUseCase } from '../core/application/schedules/SetScheduleUseCase';
 import { ProfessionalController } from '../core/infrastructure/http/controllers/ProfessionalController';
@@ -38,9 +38,15 @@ import { ScheduleController } from '../core/infrastructure/http/controllers/Sche
     },
     {
       provide: CreateProfessionalUseCase,
-      useFactory: (professionalRepo) =>
-        new CreateProfessionalUseCase(professionalRepo),
-      inject: [PrismaProfessionalRepository],
+      useFactory: (professionalRepo, scheduleRepo) =>
+        new CreateProfessionalUseCase(professionalRepo, scheduleRepo),
+      inject: [PrismaProfessionalRepository, PrismaScheduleRepository],
+    },
+    {
+      provide: DeleteProfessionalUseCase,
+      useFactory: (professionalRepo, scheduleRepo) =>
+        new DeleteProfessionalUseCase(professionalRepo, scheduleRepo),
+      inject: [PrismaProfessionalRepository, PrismaScheduleRepository],
     },
     {
       provide: CreateServiceUseCase,
@@ -61,6 +67,7 @@ import { ScheduleController } from '../core/infrastructure/http/controllers/Sche
   ],
   exports: [
     CreateProfessionalUseCase,
+    DeleteProfessionalUseCase,
     CreateServiceUseCase,
     SetScheduleUseCase,
   ],

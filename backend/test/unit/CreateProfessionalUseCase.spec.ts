@@ -1,12 +1,15 @@
 import { describe, it, expect } from '@jest/globals';
 import { CreateProfessionalUseCase } from '../../src/core/application/professionals/CreateProfessionalUseCase';
 import { FakeProfessionalRepository } from './fakes/FakeProfessionalRepository';
+import { FakeScheduleRepository } from './fakes/FakeScheduleRepository';
 import { Professional } from '../../src/core/domain/entities/Professional';
+import { DayOfWeek } from '../../src/core/domain/entities/Schedule';
 
 describe('CreateProfessionalUseCase', () => {
   it('should create a professional successfully', async () => {
     const repository = new FakeProfessionalRepository();
-    const useCase = new CreateProfessionalUseCase(repository);
+    const scheduleRepository = new FakeScheduleRepository();
+    const useCase = new CreateProfessionalUseCase(repository, scheduleRepository);
 
     const professional = await useCase.execute({
       establishmentId: 'est-1',
@@ -26,7 +29,8 @@ describe('CreateProfessionalUseCase', () => {
 
   it('should prevent creating professional with same email in different establishment', async () => {
     const repository = new FakeProfessionalRepository();
-    const useCase = new CreateProfessionalUseCase(repository);
+    const scheduleRepository = new FakeScheduleRepository();
+    const useCase = new CreateProfessionalUseCase(repository, scheduleRepository);
 
     // Create first professional
     await useCase.execute({
@@ -51,7 +55,8 @@ describe('CreateProfessionalUseCase', () => {
 
   it('should prevent creating duplicate professional in same establishment', async () => {
     const repository = new FakeProfessionalRepository();
-    const useCase = new CreateProfessionalUseCase(repository);
+    const scheduleRepository = new FakeScheduleRepository();
+    const useCase = new CreateProfessionalUseCase(repository, scheduleRepository);
 
     // Create first professional
     await useCase.execute({
@@ -76,7 +81,8 @@ describe('CreateProfessionalUseCase', () => {
 
   it('should allow multiple professionals with different emails in same establishment', async () => {
     const repository = new FakeProfessionalRepository();
-    const useCase = new CreateProfessionalUseCase(repository);
+    const scheduleRepository = new FakeScheduleRepository();
+    const useCase = new CreateProfessionalUseCase(repository, scheduleRepository);
 
     const prof1 = await useCase.execute({
       establishmentId: 'est-1',
@@ -102,7 +108,8 @@ describe('CreateProfessionalUseCase', () => {
 
   it('should allow freelancer to work with multiple establishments', async () => {
     const repository = new FakeProfessionalRepository();
-    const useCase = new CreateProfessionalUseCase(repository);
+    const scheduleRepository = new FakeScheduleRepository();
+    const useCase = new CreateProfessionalUseCase(repository, scheduleRepository);
 
     // Create first professional as freelancer
     const prof1 = await useCase.execute({
@@ -133,5 +140,42 @@ describe('CreateProfessionalUseCase', () => {
 
     expect(est1Professionals).toHaveLength(1);
     expect(est2Professionals).toHaveLength(1);
+  });
+
+  it('should create default schedules when professional is created', async () => {
+    const repository = new FakeProfessionalRepository();
+    const scheduleRepository = new FakeScheduleRepository();
+    const useCase = new CreateProfessionalUseCase(repository, scheduleRepository);
+
+    const professional = await useCase.execute({
+      establishmentId: 'est-1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      phone: '1234567890',
+    });
+
+    const schedules = await scheduleRepository.findByProfessional(
+      professional.id,
+    );
+
+    // Should have 5 default schedules (Monday to Friday)
+    expect(schedules).toHaveLength(5);
+
+    // Verify they are the correct days
+    const daysOfWeek = schedules.map((s) => s.dayOfWeek);
+    expect(daysOfWeek).toContain(DayOfWeek.MONDAY);
+    expect(daysOfWeek).toContain(DayOfWeek.TUESDAY);
+    expect(daysOfWeek).toContain(DayOfWeek.WEDNESDAY);
+    expect(daysOfWeek).toContain(DayOfWeek.THURSDAY);
+    expect(daysOfWeek).toContain(DayOfWeek.FRIDAY);
+    expect(daysOfWeek).not.toContain(DayOfWeek.SATURDAY);
+    expect(daysOfWeek).not.toContain(DayOfWeek.SUNDAY);
+
+    // Verify times are 09:00 to 18:00
+    schedules.forEach((s) => {
+      expect(s.startTime).toBe('09:00');
+      expect(s.endTime).toBe('18:00');
+      expect(s.isAvailable).toBe(true);
+    });
   });
 });
