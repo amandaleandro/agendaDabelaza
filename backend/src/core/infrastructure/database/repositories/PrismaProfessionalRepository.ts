@@ -15,6 +15,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: professional.name,
         email: professional.email,
         phone: professional.phone,
+        freelancer: professional.freelancer,
       },
     });
   }
@@ -32,6 +33,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
       name: row.name,
       email: row.email,
       phone: row.phone,
+      freelancer: row.freelancer,
       createdAt: row.createdAt,
     });
   }
@@ -49,6 +51,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: row.name,
         email: row.email,
         phone: row.phone,
+        freelancer: row.freelancer,
         createdAt: row.createdAt,
       }),
     );
@@ -66,6 +69,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: row.name,
         email: row.email,
         phone: row.phone,
+        freelancer: row.freelancer,
         createdAt: row.createdAt,
       }),
     );
@@ -79,8 +83,27 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: professional.name,
         email: professional.email,
         phone: professional.phone,
+        freelancer: professional.freelancer,
       },
     });
+  }
+
+  async findByEmail(email: string): Promise<Professional[]> {
+    const rows = await this.prisma.professional.findMany({
+      where: { email },
+    });
+
+    return rows.map((row) =>
+      Professional.restore({
+        id: row.id,
+        establishmentId: row.establishmentId,
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
+        freelancer: row.freelancer,
+        createdAt: row.createdAt,
+      }),
+    );
   }
 
   async updatePartial(id: string, data: Partial<Professional>): Promise<Professional> {
@@ -90,6 +113,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: data.name,
         email: data.email,
         phone: data.phone,
+        freelancer: data.freelancer,
       },
     });
 
@@ -106,6 +130,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
     name: string;
     email: string;
     phone: string;
+    freelancer: boolean;
     createdAt: Date;
   }): Professional {
     return Professional.restore({
@@ -114,6 +139,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
       name: row.name,
       email: row.email,
       phone: row.phone,
+      freelancer: row.freelancer,
       createdAt: row.createdAt,
     });
   }

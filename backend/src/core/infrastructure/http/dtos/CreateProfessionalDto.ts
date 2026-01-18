@@ -4,6 +4,7 @@ import {
   IsPhoneNumber,
   IsUUID,
   IsOptional,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateProfessionalDto {
@@ -18,4 +19,8 @@ export class CreateProfessionalDto {
 
   @IsString()
   phone: string;
+
+  @IsOptional()
+  @IsBoolean()
+  freelancer?: boolean;
 }

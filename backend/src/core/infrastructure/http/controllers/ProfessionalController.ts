@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   NotFoundException,
+  ConflictException,
   Post,
   Put,
   Param,
@@ -33,21 +34,41 @@ export class ProfessionalController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateProfessionalDto) {
-    const professional = await this.createProfessionalUseCase.execute({
-      establishmentId: dto.establishmentId,
-      name: dto.name,
-      email: dto.email,
-      phone: dto.phone,
-    });
+    try {
+      const professional = await this.createProfessionalUseCase.execute({
+        establishmentId: dto.establishmentId,
+        name: dto.name,
+        email: dto.email,
+        phone: dto.phone,
+        freelancer: dto.freelancer,
+      });
 
-    return {
-      id: professional.id,
-      establishmentId: professional.establishmentId,
-      name: professional.name,
-      email: professional.email,
-      phone: professional.phone,
-      createdAt: professional.createdAt.toISOString(),
-    };
+      return {
+        id: professional.id,
+        establishmentId: professional.establishmentId,
+        name: professional.name,
+        email: professional.email,
+        phone: professional.phone,
+        freelancer: professional.freelancer,
+        createdAt: professional.createdAt.toISOString(),
+      };
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'Professional already linked to another establishment'
+      ) {
+        throw new ConflictException(error.message);
+      }
+
+      if (
+        error instanceof Error &&
+        error.message === 'Professional already exists in this establishment'
+      ) {
+        throw new ConflictException(error.message);
+      }
+
+      throw error;
+    }
   }
 
   @Get()
@@ -60,6 +81,7 @@ export class ProfessionalController {
       name: professional.name,
       email: professional.email,
       phone: professional.phone,
+      freelancer: professional.freelancer,
       createdAt: professional.createdAt.toISOString(),
     }));
   }
@@ -76,6 +98,7 @@ export class ProfessionalController {
       name: professional.name,
       email: professional.email,
       phone: professional.phone,
+      freelancer: professional.freelancer,
       createdAt: professional.createdAt.toISOString(),
     };
   }
@@ -90,10 +113,42 @@ export class ProfessionalController {
       return { error: 'Professional not found' };
     }
 
+    if (dto.email) {
+      const existingByEmail = await this.professionalRepository.findByEmail(
+        dto.email,
+      );
+
+      const existsInOtherEstablishment = existingByEmail.find(
+        (existing) =>
+          existing.establishmentId !== professional.establishmentId &&
+          existing.id !== professional.id &&
+          !dto.freelancer,
+      );
+
+      if (existsInOtherEstablishment) {
+        throw new ConflictException(
+          'Professional already linked to another establishment',
+        );
+      }
+
+      const existsInSameEstablishment = existingByEmail.find(
+        (existing) =>
+          existing.establishmentId === professional.establishmentId &&
+          existing.id !== professional.id,
+      );
+
+      if (existsInSameEstablishment) {
+        throw new ConflictException(
+          'Professional already exists in this establishment',
+        );
+      }
+    }
+
     const updated = await this.professionalRepository.updatePartial(id, {
       name: dto.name ?? professional.name,
       email: dto.email ?? professional.email,
       phone: dto.phone ?? professional.phone,
+      freelancer: dto.freelancer ?? professional.freelancer,
     });
 
     return {
@@ -102,6 +157,7 @@ export class ProfessionalController {
       name: updated.name,
       email: updated.email,
       phone: updated.phone,
+      freelancer: updated.freelancer,
       createdAt: professional.createdAt.toISOString(),
     };
   }

@@ -96,6 +96,7 @@ model Professional {
   name              String
   email             String
   phone             String
+  freelancer        Boolean  @default(false)
   createdAt         DateTime @default(now()) @map("created_at")
 
   establishment     Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
