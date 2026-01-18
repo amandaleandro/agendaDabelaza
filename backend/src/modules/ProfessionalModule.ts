@@ -5,15 +5,17 @@ import { PrismaServiceRepository } from '../core/infrastructure/database/reposit
 import { PrismaScheduleRepository } from '../core/infrastructure/database/repositories/PrismaScheduleRepository';
 import { PrismaProductRepository } from '../core/infrastructure/database/repositories/PrismaProductRepository';
 import { CreateProfessionalUseCase } from '../core/application/professionals/CreateProfessionalUseCase';
-import { DeleteProfessionalUseCase } from '../core/application/professionals/DeleteProfessionalUseCase';import { DeleteProfessionalUseCase } from '../core/application/professionals/DeleteProfessionalUseCase';import { CreateServiceUseCase } from '../core/application/services/CreateServiceUseCase';
+import { DeleteProfessionalUseCase } from '../core/application/professionals/DeleteProfessionalUseCase';
+import { CreateServiceUseCase } from '../core/application/services/CreateServiceUseCase';
 import { ListProfessionalServicesUseCase } from '../core/application/services/ListProfessionalServicesUseCase';
 import { SetScheduleUseCase } from '../core/application/schedules/SetScheduleUseCase';
 import { ProfessionalController } from '../core/infrastructure/http/controllers/ProfessionalController';
+import { ProfessionalStatsController } from '../core/infrastructure/http/controllers/ProfessionalStatsController';
 import { ServiceController } from '../core/infrastructure/http/controllers/ServiceController';
 import { ScheduleController } from '../core/infrastructure/http/controllers/ScheduleController';
 
 @Module({
-  controllers: [ProfessionalController, ServiceController, ScheduleController],
+  controllers: [ProfessionalController, ProfessionalStatsController, ServiceController, ScheduleController],
   providers: [
     PrismaService,
     {
