@@ -2,7 +2,7 @@
 
 import { API_BASE_URL } from '@/config/api';
 import { useAuth } from '@/store/auth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { 
   Check, 
@@ -50,7 +50,7 @@ interface SubscriptionStatus {
   status: string;
 }
 
-export default function AssinaturaPage() {
+function AssinaturaContent() {
   const { establishment, user, loadFromStorage } = useAuth();
   const [currentPlan, setCurrentPlan] = useState<CurrentSubscription | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
@@ -674,3 +674,14 @@ export default function AssinaturaPage() {
   );
 }
 
+export default function AssinaturaPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+        <div className="text-white text-xl">Carregando...</div>
+      </div>
+    }>
+      <AssinaturaContent />
+    </Suspense>
+  );
+}
