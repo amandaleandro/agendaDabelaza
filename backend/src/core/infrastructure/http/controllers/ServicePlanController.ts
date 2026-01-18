@@ -16,6 +16,28 @@ interface CreateServicePlanDto {
 export class ServicePlanController {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Listar planos de um estabelecimento (rota alternativa para compatibilidade)
+  @Get('service-plans/establishment/:establishmentId')
+  async listPlansAlternative(@Param('establishmentId') establishmentId: string) {
+    const plans = await this.prisma.servicePlan.findMany({
+      where: { establishmentId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return plans.map((plan) => ({
+      id: plan.id,
+      name: plan.name,
+      description: plan.description,
+      price: plan.price,
+      durationDays: plan.durationDays,
+      maxServices: plan.maxServices,
+      discount: plan.discount,
+      benefits: plan.benefits,
+      active: plan.active,
+      createdAt: plan.createdAt.toISOString(),
+    }));
+  }
+
   // Listar planos de um estabelecimento
   @Get(':establishmentId/plans')
   async listPlans(@Param('establishmentId') establishmentId: string) {
