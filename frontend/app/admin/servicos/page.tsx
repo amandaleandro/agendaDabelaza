@@ -79,6 +79,37 @@ export default function ServicesPage() {
     }
   };
 
+              {/* Alert - No Establishment */}
+              {!establishment && (
+                <div className="rounded-xl border border-red-800 bg-red-500/10 p-4">
+                  <p className="text-red-400 font-semibold">⚠️ Erro de Autenticação</p>
+                  <p className="text-red-300 text-sm mt-2">
+                    Nenhum estabelecimento foi associado à sua conta. Por favor, faça login novamente.
+                  </p>
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-semibold"
+                  >
+                    Ir para Login
+                  </button>
+                </div>
+              )}
+
+              {/* Alert - No Professionals */}
+              {establishment && professionals.length === 0 && (
+                <div className="rounded-xl border border-amber-800 bg-amber-500/10 p-4">
+                  <p className="text-amber-400 font-semibold">⚠️ Nenhum Profissional Cadastrado</p>
+                  <p className="text-amber-300 text-sm mt-2">
+                    Você precisa criar ao menos um profissional antes de adicionar serviços.
+                  </p>
+                  <button
+                    onClick={() => router.push('/admin/profissionais')}
+                    className="mt-3 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-semibold"
+                  >
+                    Ir para Profissionais
+                  </button>
+                </div>
+              )}
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -353,6 +384,21 @@ export default function ServicesPage() {
             
             {/* Modal Body */}
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* Safety checks */}
+              {(!establishment || professionals.length === 0) && (
+                <div className="rounded-xl border border-amber-800 bg-amber-500/10 p-4">
+                  {!establishment && (
+                    <p className="text-amber-300 text-sm">
+                      ⚠️ Você não está associado a um estabelecimento. Faça login novamente para continuar.
+                    </p>
+                  )}
+                  {establishment && professionals.length === 0 && (
+                    <p className="text-amber-300 text-sm">
+                      ⚠️ Nenhum profissional cadastrado. Crie um profissional antes de adicionar serviços.
+                    </p>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">
                   Nome do Serviço *
@@ -441,7 +487,7 @@ export default function ServicesPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !establishment || professionals.length === 0}
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
                 >
                   {submitting ? 'Criando...' : 'Criar Serviço'}
