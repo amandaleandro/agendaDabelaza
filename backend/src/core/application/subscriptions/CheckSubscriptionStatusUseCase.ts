@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../infrastructure/database/prisma/PrismaService';
 
 export interface SubscriptionStatusOutput {
@@ -16,7 +17,7 @@ export interface SubscriptionStatusOutput {
 export class CheckSubscriptionStatusUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(ownerId: string): Promise<SubscriptionStatusOutput> {
+  async execute(ownerId: string, establishmentId?: string): Promise<SubscriptionStatusOutput> {
     const subscription = await this.prisma.subscription.findFirst({
       where: { ownerId },
       orderBy: { createdAt: 'desc' },
@@ -24,9 +25,25 @@ export class CheckSubscriptionStatusUseCase {
 
     if (!subscription) {
       // Sem assinatura - criar FREE automática
+      // Buscar establishmentId se não foi fornecido
+      let estId = establishmentId;
+      if (!estId) {
+        const owner = await this.prisma.owner.findUnique({
+          where: { id: ownerId },
+          include: { establishments: { take: 1 } },
+        });
+        estId = owner?.establishments[0]?.id;
+      }
+
+      if (!estId) {
+        throw new Error('Estabelecimento não encontrado para criar assinatura FREE');
+      }
+
       const freeSubscription = await this.prisma.subscription.create({
         data: {
+          id: randomUUID(),
           ownerId,
+          establishmentId: estId,
           planType: 'FREE',
           status: 'ACTIVE',
           startedAt: new Date(),
