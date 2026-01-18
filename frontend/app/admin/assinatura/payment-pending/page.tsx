@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function PaymentPendingPage() {
+function PaymentPendingContent() {
   const router = useRouter();
   const search = useSearchParams();
 
@@ -20,5 +20,19 @@ export default function PaymentPendingPage() {
         <p>Pagamento pendente. Redirecionando...</p>
       </div>
     </div>
+  );
+}
+
+export default function PaymentPendingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+        <div className="text-center">
+          <p>Carregando...</p>
+        </div>
+      </div>
+    }>
+      <PaymentPendingContent />
+    </Suspense>
   );
 }
