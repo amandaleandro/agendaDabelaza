@@ -102,24 +102,8 @@ export class CreateSubscriptionPaymentUseCase {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.warn(`Mercado Pago retornou erro: ${response.status} ${errorText}`);
-        // fallback: ativar assinatura e simular sucesso para não travar o usuário
-        await this.prisma.subscription.update({
-          where: { id: subscription.id },
-          data: {
-            status: 'ACTIVE',
-            startedAt: new Date(),
-            expiresAt: null,
-          },
-        });
-
-        return {
-          paymentId: 'SIMULATED',
-          preferenceId: 'SIMULATED_' + subscription.id,
-          initPoint: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-success?subscription_id=${subscription.id}&simulated=1`,
-          subscriptionId: subscription.id,
-          amount: amount,
-        };
+        console.error(`Mercado Pago retornou erro: ${response.status} ${errorText}`);
+        throw new Error(`Erro ao criar preferência do Mercado Pago: ${response.status}`);
       }
 
       const preference = await response.json();
@@ -131,26 +115,16 @@ export class CreateSubscriptionPaymentUseCase {
         subscriptionId: subscription.id,
         amount: amount,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar preferência do Mercado Pago:', error);
-
-      // fallback: ativar assinatura e simular sucesso para não travar o usuário
+      
+      // Cancelar subscription em caso de erro
       await this.prisma.subscription.update({
         where: { id: subscription.id },
-        data: {
-          status: 'ACTIVE',
-          startedAt: new Date(),
-          expiresAt: null,
-        },
+        data: { status: 'CANCELLED' },
       });
 
-      return {
-        paymentId: 'SIMULATED',
-        preferenceId: 'SIMULATED_' + subscription.id,
-        initPoint: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-success?subscription_id=${subscription.id}&simulated=1`,
-        subscriptionId: subscription.id,
-        amount: amount,
-      };
+      throw error;
     }
   }
 }
