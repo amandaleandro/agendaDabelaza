@@ -296,12 +296,18 @@ jobs:
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             MERCADOPAGO_ACCESS_TOKEN=${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || '/api' }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            JWT_EXPIRATION=24h
             ENVEOF
             else
               # Garantir variáveis críticas estão atualizadas
               sed -i "s|DATABASE_URL=.*|DATABASE_URL=${{ secrets.DATABASE_URL }}|" .env
               sed -i "s|JWT_SECRET=.*|JWT_SECRET=${{ secrets.JWT_SECRET }}|" .env
+              sed -i "s|MERCADOPAGO_ACCESS_TOKEN=.*|MERCADOPAGO_ACCESS_TOKEN=${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}|" .env
               sed -i "s|NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || '/api' }}|" .env
+              sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}|" .env
+              # Adicionar se não existir
+              grep -q "MERCADOPAGO_ACCESS_TOKEN" .env || echo "MERCADOPAGO_ACCESS_TOKEN=${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}" >> .env
             fi
 
             # Parar containers antigos
