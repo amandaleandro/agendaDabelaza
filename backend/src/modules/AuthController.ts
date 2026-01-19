@@ -80,6 +80,7 @@ export class AuthController {
         googleId: body.googleId,
         cnpj: body.cnpj,
         address: body.address,
+        planType: body.planType, // Add plan selection
       });
 
       const token = this.generateToken(result.owner.id, result.owner.email);

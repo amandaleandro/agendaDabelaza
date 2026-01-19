@@ -5,9 +5,57 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/store/auth';
 import { ApiClient } from '@/services/api';
-import { Mail, Lock, User, Building2, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User, Building2, ArrowRight, Loader2, CheckCircle2, Zap, Crown, Rocket, Star } from 'lucide-react';
 
 const apiClient = new ApiClient();
+
+const PLANS = [
+  {
+    id: 'FREE',
+    name: 'Gratuito',
+    price: 0,
+    icon: Zap,
+    color: 'text-gray-400',
+    bgColor: 'bg-gray-500/10',
+    borderColor: 'border-gray-500/30',
+    description: 'Ideal para começar',
+    features: ['Até 30 agendamentos/mês', 'Taxa de 10% por agendamento'],
+  },
+  {
+    id: 'BASIC',
+    name: 'Básico',
+    price: 49.90,
+    icon: CheckCircle2,
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/10',
+    borderColor: 'border-blue-500/30',
+    description: 'Para pequenos negócios',
+    features: ['Agendamentos ilimitados', 'Taxa de 5% por agendamento'],
+  },
+  {
+    id: 'PRO',
+    name: 'Profissional',
+    price: 99.90,
+    icon: Crown,
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/10',
+    borderColor: 'border-purple-500/30',
+    popular: true,
+    description: 'Mais vendido',
+    features: ['Sem taxas', 'Recursos avançados', 'Suporte prioritário'],
+  },
+  {
+    id: 'PREMIUM',
+    name: 'Premium',
+    price: 199.90,
+    icon: Rocket,
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/10',
+    borderColor: 'border-amber-500/30',
+    description: 'Para empresas',
+    features: ['Tudo do Pro', 'Sem limitações', 'Suporte dedicado'],
+  },
+];
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -18,6 +66,7 @@ export default function SignupPage() {
     cnpj: '',
   });
   const [hasCnpj, setHasCnpj] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState('FREE');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -58,6 +107,7 @@ export default function SignupPage() {
         companyName: finalCompanyName,
         slug: slug,
         cnpj: hasCnpj ? formData.cnpj : undefined,
+        planType: selectedPlan,
         // Campos opcionais
         phone: '',
         bio: '',
@@ -66,7 +116,12 @@ export default function SignupPage() {
       
       login(response.token, response.owner, response.establishment);
       
-      router.push('/admin/dashboard');
+      // Se escolheu plano pago, redireciona para pagamento
+      if (selectedPlan !== 'FREE') {
+        router.push('/admin/assinatura');
+      } else {
+        router.push('/admin/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
@@ -254,6 +309,59 @@ export default function SignupPage() {
                 </div>
               </div>
             )}
+
+            {/* Plan Selection */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-slate-300 mb-3">Escolha seu plano</label>
+              <div className="grid grid-cols-2 gap-3">
+                {PLANS.map((plan) => {
+                  const Icon = plan.icon;
+                  return (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={() => setSelectedPlan(plan.id)}
+                      className={`relative p-4 rounded-lg border-2 transition-all text-left ${
+                        selectedPlan === plan.id
+                          ? `${plan.borderColor} ${plan.bgColor} scale-[1.02]`
+                          : 'border-slate-800 bg-slate-950 hover:border-slate-700'
+                      }`}
+                    >
+                      {plan.popular && (
+                        <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                          Popular
+                        </div>
+                      )}
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2 rounded-lg ${plan.bgColor}`}>
+                          <Icon className={`w-5 h-5 ${plan.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-200 text-sm">{plan.name}</div>
+                          <div className="text-xs text-slate-500 mb-1">{plan.description}</div>
+                          <div className="font-bold text-white">
+                            {plan.price === 0 ? 'Grátis' : `R$ ${plan.price.toFixed(2)}/mês`}
+                          </div>
+                        </div>
+                      </div>
+                      <ul className="mt-3 space-y-1">
+                        {plan.features.map((feature, idx) => (
+                          <li key={idx} className="text-xs text-slate-400 flex items-start gap-1">
+                            <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0 text-green-400" />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedPlan !== 'FREE' && (
+                <p className="text-xs text-slate-500 text-center">
+                  * Você pode começar com 14 dias grátis e cancelar quando quiser
+                </p>
+              )}
+            </div>
 
             <button
               type="submit"

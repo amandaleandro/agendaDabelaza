@@ -21,6 +21,7 @@ interface SignupInput {
   googleId?: string;
   cnpj?: string;
   address?: string;
+  planType?: PlanType;
 }
 
 @Injectable()
@@ -80,15 +81,16 @@ export class SignupUseCase {
 
     await this.establishmentRepository.save(establishment);
 
-    // 6. Create default subscription (FREE plan)
+    // 6. Create subscription with selected plan (default to FREE)
+    const planType = input.planType || PlanType.FREE;
     const subscription = new Subscription(
       randomUUID(),
       ownerId,
       establishment.id,
-      PlanType.FREE,
+      planType,
       SubscriptionStatus.ACTIVE,
       new Date(),
-      null, // Free plan: no expiration
+      planType === PlanType.FREE ? null : null, // Free plan: no expiration, paid plans: set on payment
     );
 
     await this.subscriptionRepository.save(subscription);
