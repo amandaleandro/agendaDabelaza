@@ -61,7 +61,7 @@ export default function PlanosServicosPage() {
 
     try {
       // Buscar serviços disponíveis
-      const servicesResponse = await fetch('${API_BASE_URL}/services');
+      const servicesResponse = await fetch(`${API_BASE_URL}/services`);
       if (servicesResponse.ok) {
         const servicesData = await servicesResponse.json();
         setServices(Array.isArray(servicesData) ? servicesData : []);
