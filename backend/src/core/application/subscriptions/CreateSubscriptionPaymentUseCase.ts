@@ -91,6 +91,11 @@ export class CreateSubscriptionPaymentUseCase {
         },
       };
 
+      console.log('📤 Enviando preferência para Mercado Pago:', {
+        items: preferenceData.items,
+        back_urls: preferenceData.back_urls,
+      });
+
       const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
         method: 'POST',
         headers: {
@@ -102,11 +107,16 @@ export class CreateSubscriptionPaymentUseCase {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Mercado Pago retornou erro: ${response.status} ${errorText}`);
-        throw new Error(`Erro ao criar preferência do Mercado Pago: ${response.status}`);
+        console.error(`❌ Mercado Pago erro (${response.status}): ${errorText}`);
+        throw new Error(`Erro Mercado Pago ${response.status}: ${errorText}`);
       }
 
       const preference = await response.json();
+
+      console.log('✅ Preferência Mercado Pago criada com sucesso:', {
+        preferenceId: preference.id,
+        initPoint: preference.init_point,
+      });
 
       return {
         paymentId: preference.id,
