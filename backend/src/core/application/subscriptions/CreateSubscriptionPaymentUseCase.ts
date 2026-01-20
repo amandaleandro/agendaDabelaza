@@ -81,7 +81,6 @@ export class CreateSubscriptionPaymentUseCase {
           failure: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-failure`,
           pending: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-pending`,
         },
-        auto_return: 'approved',
         external_reference: subscription.id,
         notification_url: `${process.env.API_URL || 'http://localhost:3001'}/api/subscriptions/webhook/mercadopago`,
         metadata: {
