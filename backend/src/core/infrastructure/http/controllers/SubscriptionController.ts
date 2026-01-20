@@ -18,9 +18,12 @@ import { GetEstablishmentPlanUseCase } from '../../../application/subscriptions/
 import { CreateSubscriptionPaymentUseCase } from '../../../application/subscriptions/CreateSubscriptionPaymentUseCase';
 import { ProcessSubscriptionPaymentUseCase } from '../../../application/subscriptions/ProcessSubscriptionPaymentUseCase';
 import { CheckSubscriptionStatusUseCase } from '../../../application/subscriptions/CheckSubscriptionStatusUseCase';
+import { ProcessRecurringPaymentUseCase } from '../../../application/subscriptions/ProcessRecurringPaymentUseCase';
+import { CancelRecurringSubscriptionUseCase } from '../../../application/subscriptions/CancelRecurringSubscriptionUseCase';
 import { CreateSubscriptionDto } from '../dtos/CreateSubscriptionDto';
 import { PrismaSubscriptionRepository } from '../../database/repositories/PrismaSubscriptionRepository';
 import { PlanType } from '../../../domain/entities/Plan';
+import { PrismaService } from '../../database/prisma/PrismaService';
 
 // Configuração dos planos disponíveis
 const PLAN_CONFIG = {
@@ -89,7 +92,10 @@ export class SubscriptionController {
     private readonly createSubscriptionPaymentUseCase: CreateSubscriptionPaymentUseCase,
     private readonly processSubscriptionPaymentUseCase: ProcessSubscriptionPaymentUseCase,
     private readonly checkSubscriptionStatusUseCase: CheckSubscriptionStatusUseCase,
+    private readonly processRecurringPaymentUseCase: ProcessRecurringPaymentUseCase,
+    private readonly cancelRecurringSubscriptionUseCase: CancelRecurringSubscriptionUseCase,
     private readonly subscriptionRepository: PrismaSubscriptionRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
@@ -288,13 +294,26 @@ export class SubscriptionController {
   @HttpCode(HttpStatus.OK)
   async createPlanPayment(
     @Param('establishmentId') establishmentId: string,
-    @Body() body: { planType: PlanType; ownerId: string },
+    @Body() body: { planType: PlanType; ownerId: string; payerEmail: string },
   ) {
     try {
+      // Buscar owner para pegar email
+      const owner = await this.prisma.owner.findUnique({
+        where: { id: body.ownerId },
+      });
+
+      if (!owner) {
+        return {
+          success: false,
+          message: 'Proprietário não encontrado',
+        };
+      }
+
       const result = await this.createSubscriptionPaymentUseCase.execute({
         establishmentId,
         ownerId: body.ownerId,
         planType: body.planType,
+        payerEmail: body.payerEmail || owner.email,
       });
 
       return {
@@ -384,5 +403,67 @@ export class SubscriptionController {
 
     // Redirecionar para página de sucesso
     return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura?payment=success`);
+  }
+
+  // ==================== ENDPOINTS DE ASSINATURA RECORRENTE ====================
+
+  @Post('recurring/:subscriptionId/cancel')
+  @HttpCode(HttpStatus.OK)
+  async cancelRecurringSubscription(
+    @Param('subscriptionId') subscriptionId: string,
+  ) {
+    try {
+      await this.cancelRecurringSubscriptionUseCase.execute({
+        subscriptionId,
+      });
+
+      return {
+        success: true,
+        message: 'Assinatura cancelada com sucesso',
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Erro ao cancelar assinatura',
+      };
+    }
+  }
+
+  @Post('webhook/recurring')
+  @HttpCode(HttpStatus.OK)
+  async handleRecurringWebhook(@Body() body: any) {
+    console.log('📨 Webhook recorrente recebido:', body);
+
+    try {
+      // Mercado Pago envia notificações sobre cobrança recorrente
+      if (body.type === 'subscription_recurring') {
+        const chargeId = body.data?.id;
+        const subscriptionId = body.data?.subscription_id;
+        const status = body.data?.status;
+
+        if (!chargeId || !subscriptionId) {
+          console.warn('Webhook sem ID de charge ou subscription');
+          return { status: 'ignored' };
+        }
+
+        // Processar charge recorrente
+        await this.processRecurringPaymentUseCase.execute({
+          mpSubscriptionId: subscriptionId,
+          mpChargeId: chargeId,
+          status: status === 'approved' ? 'approved' :
+                  status === 'rejected' ? 'rejected' :
+                  status === 'pending' ? 'pending' :
+                  status === 'refunded' ? 'refunded' : 'pending',
+          amount: body.data?.amount || 0,
+        });
+
+        return { status: 'processed' };
+      }
+
+      return { status: 'ignored' };
+    } catch (error: any) {
+      console.error('Erro ao processar webhook recorrente:', error);
+      return { status: 'error', message: error.message };
+    }
   }
 }

@@ -251,23 +251,25 @@ model Payment {
 }
 
 model Subscription {
-  id                  String   @id
-  ownerId             String   @map("owner_id")
-  establishmentId     String   @map("establishment_id")
-  planType            String   @map("plan_type") // FREE, BASIC, PRO, PREMIUM
-  status              String   // ACTIVE, CANCELLED, PAST_DUE, TRIAL
-  price               Float    @default(0) // Valor mensal da assinatura (0 para FREE)
-  platformFeePercent  Float    @default(10.0) @map("platform_fee_percent") // % de comissão (10% padrão, 0% se plano pago)
-  billingCycle        String   @default("MONTHLY") @map("billing_cycle") // MONTHLY, YEARLY
-  paymentMethod       String?  @map("payment_method") // PIX, CREDIT_CARD
-  mercadoPagoId       String?  @unique @map("mercadopago_id") // ID da assinatura no MP
-  startedAt           DateTime @map("started_at")
-  expiresAt           DateTime? @map("expires_at")
-  nextBillingDate     DateTime? @map("next_billing_date")
-  cancelledAt         DateTime? @map("cancelled_at")
-  trialEndsAt         DateTime? @map("trial_ends_at") // Trial de 14 dias
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                      String   @id
+  ownerId                 String   @map("owner_id")
+  establishmentId         String   @map("establishment_id")
+  planType                String   @map("plan_type") // FREE, BASIC, PRO, PREMIUM
+  status                  String   // ACTIVE, CANCELLED, PAST_DUE, TRIAL, PENDING, EXPIRED
+  price                   Float    @default(0) // Valor mensal da assinatura (0 para FREE)
+  platformFeePercent      Float    @default(10.0) @map("platform_fee_percent") // % de comissão (10% padrão, 0% se plano pago)
+  billingCycle            String   @default("MONTHLY") @map("billing_cycle") // MONTHLY, YEARLY
+  paymentMethod           String?  @map("payment_method") // PIX, CREDIT_CARD
+  mercadoPagoId           String?  @unique @map("mercadopago_id") // ID da preferência inicial no MP
+  mpSubscriptionId        String?  @unique @map("mp_subscription_id") // ID da assinatura recorrente no MP
+  startedAt               DateTime @map("started_at")
+  expiresAt               DateTime? @map("expires_at")
+  nextBillingDate         DateTime? @map("next_billing_date")
+  cancelledAt             DateTime? @map("cancelled_at")
+  trialEndsAt             DateTime? @map("trial_ends_at") // Trial de 14 dias
+  autoRenewal             Boolean  @default(true) @map("auto_renewal") // Renovação automática habilitada
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
   establishment       Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
 

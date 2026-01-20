@@ -256,6 +256,7 @@ function AssinaturaContent() {
             body: JSON.stringify({
               planType: selectedPlan.id,
               ownerId: ownerId,
+              payerEmail: localStorage.getItem('ownerEmail') || '',
             }),
           }
         );

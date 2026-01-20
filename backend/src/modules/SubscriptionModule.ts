@@ -7,12 +7,16 @@ import { GetEstablishmentPlanUseCase } from '../core/application/subscriptions/G
 import { CreateSubscriptionPaymentUseCase } from '../core/application/subscriptions/CreateSubscriptionPaymentUseCase';
 import { ProcessSubscriptionPaymentUseCase } from '../core/application/subscriptions/ProcessSubscriptionPaymentUseCase';
 import { CheckSubscriptionStatusUseCase } from '../core/application/subscriptions/CheckSubscriptionStatusUseCase';
+import { MercadoPagoSubscriptionService } from '../core/application/subscriptions/MercadoPagoSubscriptionService';
+import { ProcessRecurringPaymentUseCase } from '../core/application/subscriptions/ProcessRecurringPaymentUseCase';
+import { CancelRecurringSubscriptionUseCase } from '../core/application/subscriptions/CancelRecurringSubscriptionUseCase';
 import { SubscriptionController } from '../core/infrastructure/http/controllers/SubscriptionController';
 
 @Module({
   controllers: [SubscriptionController],
   providers: [
     PrismaService,
+    MercadoPagoSubscriptionService,
     {
       provide: PrismaSubscriptionRepository,
       useFactory: (prisma: PrismaService) => new PrismaSubscriptionRepository(prisma),
@@ -38,15 +42,27 @@ import { SubscriptionController } from '../core/infrastructure/http/controllers/
     },
     {
       provide: CreateSubscriptionPaymentUseCase,
-      useFactory: (prisma: PrismaService) =>
-        new CreateSubscriptionPaymentUseCase(prisma),
-      inject: [PrismaService],
+      useFactory: (prisma: PrismaService, mpService: MercadoPagoSubscriptionService) =>
+        new CreateSubscriptionPaymentUseCase(prisma, mpService),
+      inject: [PrismaService, MercadoPagoSubscriptionService],
     },
     {
       provide: ProcessSubscriptionPaymentUseCase,
       useFactory: (prisma: PrismaService) =>
         new ProcessSubscriptionPaymentUseCase(prisma),
       inject: [PrismaService],
+    },
+    {
+      provide: ProcessRecurringPaymentUseCase,
+      useFactory: (prisma: PrismaService) =>
+        new ProcessRecurringPaymentUseCase(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: CancelRecurringSubscriptionUseCase,
+      useFactory: (prisma: PrismaService, mpService: MercadoPagoSubscriptionService) =>
+        new CancelRecurringSubscriptionUseCase(prisma, mpService),
+      inject: [PrismaService, MercadoPagoSubscriptionService],
     },
     {
       provide: CheckSubscriptionStatusUseCase,
@@ -61,6 +77,8 @@ import { SubscriptionController } from '../core/infrastructure/http/controllers/
     GetEstablishmentPlanUseCase,
     CreateSubscriptionPaymentUseCase,
     ProcessSubscriptionPaymentUseCase,
+    ProcessRecurringPaymentUseCase,
+    CancelRecurringSubscriptionUseCase,
     CheckSubscriptionStatusUseCase,
   ],
 })

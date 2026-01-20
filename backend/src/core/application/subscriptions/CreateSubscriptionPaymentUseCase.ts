@@ -2,24 +2,30 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../infrastructure/database/prisma/PrismaService';
 import { PlanType } from '../../domain/entities/Plan';
+import { MercadoPagoSubscriptionService } from './MercadoPagoSubscriptionService';
 
 export interface CreateSubscriptionPaymentInput {
   establishmentId: string;
   ownerId: string;
   planType: PlanType;
+  payerEmail: string;
 }
 
 export interface CreateSubscriptionPaymentOutput {
   paymentId: string;
-  preferenceId: string;
-  initPoint: string;
+  preferenceId?: string;
   subscriptionId: string;
+  initPoint: string;
   amount: number;
+  isRecurring: boolean;
 }
 
 @Injectable()
 export class CreateSubscriptionPaymentUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mercadoPagoService: MercadoPagoSubscriptionService,
+  ) {}
 
   async execute(input: CreateSubscriptionPaymentInput): Promise<CreateSubscriptionPaymentOutput> {
     // Configuração dos planos
@@ -44,12 +50,15 @@ export class CreateSubscriptionPaymentUseCase {
         establishmentId: input.establishmentId,
         planType: input.planType,
         status: 'PENDING',
+        price: amount,
+        autoRenewal: true,
         startedAt: new Date(),
-        expiresAt: null, // Será definido após pagamento
+        expiresAt: null, // Será definido após primeiro pagamento
+        nextBillingDate: null,
       },
     });
 
-    // Configurar preferência do Mercado Pago
+    // Configurar assinatura recorrente do Mercado Pago
     const mercadoPagoToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     
     if (!mercadoPagoToken) {
@@ -58,75 +67,62 @@ export class CreateSubscriptionPaymentUseCase {
       // Modo simulação: retornar dados fake
       return {
         paymentId: 'SIMULATED',
-        preferenceId: 'SIMULATED_' + subscription.id,
-        initPoint: `/admin/assinatura/payment-success?subscription_id=${subscription.id}`,
         subscriptionId: subscription.id,
+        initPoint: `/admin/assinatura/payment-success?subscription_id=${subscription.id}`,
         amount: amount,
+        isRecurring: true,
       };
     }
 
     try {
-      // Criar preferência no Mercado Pago
-      const preferenceData = {
-        items: [
-          {
-            title: `Plano ${input.planType} - Agendei`,
-            quantity: 1,
-            currency_id: 'BRL',
-            unit_price: amount,
+      // Criar assinatura recorrente com Mercado Pago
+      const mpSubscriptionResponse =
+        await this.mercadoPagoService.createSubscription({
+          reason: `Plano ${input.planType} - Agendei (Renovação Automática Mensal)`,
+          auto_recurring: {
+            frequency: 1,
+            frequency_type: 'months',
           },
-        ],
-        back_urls: {
-          success: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-success`,
-          failure: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-failure`,
-          pending: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-pending`,
-        },
-        external_reference: subscription.id,
-        notification_url: `${process.env.API_URL || 'http://localhost:3001'}/api/subscriptions/webhook/mercadopago`,
-        metadata: {
-          subscription_id: subscription.id,
-          establishment_id: input.establishmentId,
-          owner_id: input.ownerId,
-        },
-      };
+          payer_email: input.payerEmail,
+          back_urls: {
+            success: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-success`,
+            failure: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-failure`,
+            pending: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-pending`,
+          },
+          external_reference: subscription.id,
+          notification_url: `${process.env.API_URL || 'http://localhost:3001'}/api/subscriptions/webhook/mercadopago`,
+        });
 
-      console.log('📤 Enviando preferência para Mercado Pago:', {
-        items: preferenceData.items,
-        back_urls: preferenceData.back_urls,
+      // Atualizar subscription com ID do Mercado Pago
+      await this.prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          mpSubscriptionId: mpSubscriptionResponse.id,
+          mercadoPagoId: mpSubscriptionResponse.id,
+        },
       });
 
-      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${mercadoPagoToken}`,
-        },
-        body: JSON.stringify(preferenceData),
-      });
+      const initPoint =
+        mpSubscriptionResponse.init_point ||
+        mpSubscriptionResponse.sandbox_init_point;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Mercado Pago erro (${response.status}): ${errorText}`);
-        throw new Error(`Erro Mercado Pago ${response.status}: ${errorText}`);
+      if (!initPoint) {
+        throw new Error('Mercado Pago não retornou init_point');
       }
 
-      const preference = await response.json();
-
-      console.log('✅ Preferência Mercado Pago criada com sucesso:', {
-        preferenceId: preference.id,
-        initPoint: preference.init_point,
-      });
-
       return {
-        paymentId: preference.id,
-        preferenceId: preference.id,
-        initPoint: preference.init_point,
+        paymentId: mpSubscriptionResponse.id,
         subscriptionId: subscription.id,
+        initPoint: initPoint,
         amount: amount,
+        isRecurring: true,
       };
     } catch (error: any) {
-      console.error('Erro ao criar preferência do Mercado Pago:', error);
-      
+      console.error(
+        'Erro ao criar assinatura recorrente do Mercado Pago:',
+        error,
+      );
+
       // Cancelar subscription em caso de erro
       await this.prisma.subscription.update({
         where: { id: subscription.id },
