@@ -139,6 +139,10 @@ export class SubscriptionController {
       features: PLAN_CONFIG[plan.planType]?.features || [],
       expiresAt: subscription?.expiresAt?.toISOString() || null,
       status: subscription?.status || 'ACTIVE',
+      autoRenewal: (subscription as any)?.autoRenewal ?? true,
+      nextBillingDate: (subscription as any)?.nextBillingDate
+        ? (subscription as any).nextBillingDate.toISOString()
+        : null,
     };
   }
 
@@ -466,4 +470,49 @@ export class SubscriptionController {
       return { status: 'error', message: error.message };
     }
   }
+  
+  @Get(':id/payments')
+  async getSubscriptionPayments(@Param('id') id: string) {
+    const payments = await this.prisma.subscriptionPayment.findMany({
+      where: { subscriptionId: id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return payments.map((p) => ({
+      id: p.id,
+      amount: p.amount,
+      status: p.status,
+      mpChargeId: p.mpChargeId,
+      createdAt: p.createdAt.toISOString(),
+      paidAt: p.paidAt ? p.paidAt.toISOString() : null,
+    }));
+  }
+
+  @Get('owner/:ownerId/payments')
+  async getOwnerSubscriptionPayments(@Param('ownerId') ownerId: string) {
+    const subs = await this.prisma.subscription.findMany({
+      where: { ownerId },
+      select: { id: true },
+    });
+
+    const subscriptionIds = subs.map((s) => s.id);
+    if (subscriptionIds.length === 0) return [];
+
+    const payments = await this.prisma.subscriptionPayment.findMany({
+      where: { subscriptionId: { in: subscriptionIds } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return payments.map((p) => ({
+      id: p.id,
+      subscriptionId: p.subscriptionId,
+      amount: p.amount,
+      status: p.status,
+      mpChargeId: p.mpChargeId,
+      createdAt: p.createdAt.toISOString(),
+      paidAt: p.paidAt ? p.paidAt.toISOString() : null,
+    }));
+  }
+
 }
+

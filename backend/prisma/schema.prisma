@@ -272,11 +272,31 @@ model Subscription {
   updatedAt               DateTime @updatedAt @map("updated_at")
 
   establishment       Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  subscriptionPayments SubscriptionPayment[]
 
   @@map("subscriptions")
   @@index([ownerId])
   @@index([establishmentId])
   @@index([status])
+}
+
+// Pagamentos associados a assinaturas (recorrentes mês a mês)
+model SubscriptionPayment {
+  id               String   @id @default(cuid())
+  subscriptionId   String   @map("subscription_id")
+  amount           Float
+  status           String   // PENDING, PAID, FAILED, REFUNDED
+  mpChargeId       String?  @map("mp_charge_id") // ID da cobrança no Mercado Pago
+  paidAt           DateTime? @map("paid_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  subscription     Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("subscription_payments")
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // Plano de serviço criado pelo estabelecimento

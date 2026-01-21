@@ -63,6 +63,8 @@ function AssinaturaContent() {
   const [success, setSuccess] = useState('');
   const [establishmentId, setEstablishmentId] = useState('');
   const [ownerId, setOwnerId] = useState('');
+  const [payments, setPayments] = useState<Array<{ id: string; amount: number; status: string; createdAt: string; paidAt: string | null }>>([]);
+  const [autoRenewal, setAutoRenewal] = useState<boolean>(true);
   const searchParams = useSearchParams();
 
   // Hidratar store caso já exista token salvo (não adicionar loadFromStorage às deps)
@@ -183,11 +185,32 @@ function AssinaturaContent() {
 
       if (currentResult && currentResult.status === 'fulfilled' && currentResult.value) {
         setCurrentPlan(currentResult.value);
+        if (typeof currentResult.value.autoRenewal === 'boolean') {
+          setAutoRenewal(currentResult.value.autoRenewal);
+        }
         loadedSomething = true;
       }
 
       if (statusResult && statusResult.status === 'fulfilled' && statusResult.value) {
         setSubscriptionStatus(statusResult.value);
+        // Carregar histórico de pagamentos do proprietário
+        if (ownerId) {
+          try {
+            const payResp = await fetch(`${API_BASE_URL}/subscriptions/owner/${ownerId}/payments`, { signal: AbortSignal.timeout(5000) });
+            if (payResp.ok) {
+              const payData = await payResp.json();
+              setPayments(
+                (payData || []).map((p: any) => ({
+                  id: p.id,
+                  amount: p.amount,
+                  status: p.status,
+                  createdAt: p.createdAt,
+                  paidAt: p.paidAt || null,
+                }))
+              );
+            }
+          } catch {}
+        }
         loadedSomething = true;
       }
 
@@ -310,6 +333,40 @@ function AssinaturaContent() {
     } catch (err: any) {
       console.error('Erro:', err);
       setError('Erro ao cancelar assinatura');
+    } finally {
+      setProcessingChange(false);
+    }
+  };
+
+  const handleDisableAutoRenewal = async () => {
+    if (!subscriptionStatus?.subscriptionId) {
+      setError('Assinatura não encontrada para desativar renovação automática');
+      return;
+    }
+    if (!confirm('Deseja desativar a renovação automática desta assinatura?')) {
+      return;
+    }
+
+    setProcessingChange(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const resp = await fetch(
+        `${API_BASE_URL}/subscriptions/recurring/${subscriptionStatus.subscriptionId}/cancel`,
+        { method: 'POST' }
+      );
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        setSuccess('Renovação automática desativada com sucesso.');
+        setAutoRenewal(false);
+        setTimeout(() => loadData(), 1000);
+      } else {
+        setError(data.message || 'Erro ao desativar renovação automática');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao desativar renovação automática');
     } finally {
       setProcessingChange(false);
     }
@@ -493,6 +550,30 @@ function AssinaturaContent() {
               </div>
 
               {currentPlan.planType !== 'FREE' && (
+                <div className="mt-6 bg-slate-800/60 border border-slate-700 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-300 text-sm">Renovação Automática</p>
+                      <p className="text-slate-400 text-xs">
+                        {autoRenewal ? 'Ativa: cobra todo mês automaticamente' : 'Desativada'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleDisableAutoRenewal}
+                      disabled={processingChange || !autoRenewal}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                        autoRenewal
+                          ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                          : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Desativar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {currentPlan.planType !== 'FREE' && (
                 <button
                   onClick={handleCancelSubscription}
                   disabled={processingChange}
@@ -671,6 +752,36 @@ function AssinaturaContent() {
           </div>
         )}
       </div>
+      {/* Histórico de Pagamentos */}
+      {payments.length > 0 && (
+        <div className="max-w-7xl mx-auto mt-10">
+          <h2 className="text-2xl font-bold text-white mb-4">Histórico de Pagamentos</h2>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {payments.map((p) => (
+                <div key={p.id} className="bg-slate-900 rounded-lg p-4 border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-slate-300 text-sm">{new Date(p.createdAt).toLocaleDateString('pt-BR')}</span>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                      p.status === 'PAID'
+                        ? 'bg-green-500/20 text-green-400'
+                        : p.status === 'FAILED'
+                        ? 'bg-red-500/20 text-red-400'
+                        : 'bg-amber-500/20 text-amber-400'
+                    }`}>
+                      {p.status}
+                    </span>
+                  </div>
+                  <div className="text-white text-lg font-bold">R$ {p.amount.toFixed(2)}</div>
+                  {p.paidAt && (
+                    <div className="text-slate-400 text-xs mt-1">Pago em {new Date(p.paidAt).toLocaleDateString('pt-BR')}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

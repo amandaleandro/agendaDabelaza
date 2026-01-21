@@ -31,6 +31,24 @@ export class ProcessRecurringPaymentUseCase {
       status: input.status,
     });
 
+    // Criar/atualizar histórico de pagamento da assinatura
+    await this.prisma.subscriptionPayment.create({
+      data: {
+        subscriptionId: subscription.id,
+        amount: input.amount,
+        status:
+          input.status === 'approved'
+            ? 'PAID'
+            : input.status === 'rejected'
+            ? 'FAILED'
+            : input.status === 'refunded'
+            ? 'REFUNDED'
+            : 'PENDING',
+        mpChargeId: input.mpChargeId,
+        paidAt: input.status === 'approved' ? new Date() : null,
+      },
+    });
+
     if (input.status === 'approved') {
       // Pagamento aprovado - renovar assinatura
       const expiresAt = new Date();

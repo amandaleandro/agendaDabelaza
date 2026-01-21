@@ -11,6 +11,7 @@ export interface SubscriptionStatusOutput {
   daysUntilExpiration: number | null;
   planType: string;
   status: string;
+  subscriptionId?: string;
 }
 
 @Injectable()
@@ -92,6 +93,7 @@ export class CheckSubscriptionStatusUseCase {
       daysUntilExpiration,
       planType: subscription.planType,
       status: isOverdue ? 'EXPIRED' : subscription.status,
+      subscriptionId: subscription.id,
     };
   }
 }
