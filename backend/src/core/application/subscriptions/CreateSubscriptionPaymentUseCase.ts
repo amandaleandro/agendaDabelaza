@@ -42,18 +42,23 @@ export class CreateSubscriptionPaymentUseCase {
       throw new Error('Plano gratuito não requer pagamento');
     }
 
-    // Criar assinatura pendente
+    // Calcular data de fim do trial (14 dias)
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
+    // Criar assinatura com trial de 14 dias
     const subscription = await this.prisma.subscription.create({
       data: {
         id: randomUUID(),
         ownerId: input.ownerId,
         establishmentId: input.establishmentId,
         planType: input.planType,
-        status: 'PENDING',
+        status: 'TRIAL', // Inicia com TRIAL, muda para ACTIVE após primeiro pagamento
         price: amount,
         autoRenewal: true,
         startedAt: new Date(),
-        expiresAt: null, // Será definido após primeiro pagamento
+        trialEndsAt: trialEndsAt,
+        expiresAt: null, // Será definido após pagamento
         nextBillingDate: null,
       },
     });

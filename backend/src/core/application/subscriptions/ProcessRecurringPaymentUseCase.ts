@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/database/prisma/PrismaService';
+import { EmailService } from '../../infrastructure/services/EmailService';
 
 export interface ProcessRecurringPaymentInput {
   mpSubscriptionId: string;
@@ -10,7 +11,10 @@ export interface ProcessRecurringPaymentInput {
 
 @Injectable()
 export class ProcessRecurringPaymentUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async execute(input: ProcessRecurringPaymentInput): Promise<void> {
     // Buscar subscription pelo ID do Mercado Pago
@@ -57,7 +61,7 @@ export class ProcessRecurringPaymentUseCase {
       const nextBillingDate = new Date();
       nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
-      await this.prisma.subscription.update({
+      const updatedSub = await this.prisma.subscription.update({
         where: { id: subscription.id },
         data: {
           status: 'ACTIVE',
@@ -65,6 +69,31 @@ export class ProcessRecurringPaymentUseCase {
           nextBillingDate: nextBillingDate,
         },
       });
+
+      // Buscar dados do proprietário para email
+      const owner = await this.prisma.owner.findUnique({
+        where: { id: subscription.ownerId },
+      });
+
+      // Enviar email de confirmação de renovação
+      if (owner?.email) {
+        try {
+          await this.emailService.sendEmail({
+            to: owner.email,
+            subject: 'Assinatura Renovada - Agendei',
+            template: 'renewal_confirmation',
+            variables: {
+              ownerName: owner.name,
+              planType: subscription.planType,
+              amount: input.amount,
+              expiresAt: expiresAt.toLocaleDateString('pt-BR'),
+            },
+          });
+        } catch (err) {
+          console.error('Erro ao enviar email de renovação:', err);
+          // Não falhar o processo se email falhar
+        }
+      }
 
       console.log('✅ Subscription renovada com sucesso:', {
         subscriptionId: subscription.id,

@@ -10,12 +10,14 @@ import { CheckSubscriptionStatusUseCase } from '../core/application/subscription
 import { MercadoPagoSubscriptionService } from '../core/application/subscriptions/MercadoPagoSubscriptionService';
 import { ProcessRecurringPaymentUseCase } from '../core/application/subscriptions/ProcessRecurringPaymentUseCase';
 import { CancelRecurringSubscriptionUseCase } from '../core/application/subscriptions/CancelRecurringSubscriptionUseCase';
+import { EmailService } from '../core/infrastructure/services/EmailService';
 import { SubscriptionController } from '../core/infrastructure/http/controllers/SubscriptionController';
 
 @Module({
   controllers: [SubscriptionController],
   providers: [
     PrismaService,
+    EmailService,
     MercadoPagoSubscriptionService,
     {
       provide: PrismaSubscriptionRepository,
@@ -54,9 +56,9 @@ import { SubscriptionController } from '../core/infrastructure/http/controllers/
     },
     {
       provide: ProcessRecurringPaymentUseCase,
-      useFactory: (prisma: PrismaService) =>
-        new ProcessRecurringPaymentUseCase(prisma),
-      inject: [PrismaService],
+      useFactory: (prisma: PrismaService, emailService: EmailService) =>
+        new ProcessRecurringPaymentUseCase(prisma, emailService),
+      inject: [PrismaService, EmailService],
     },
     {
       provide: CancelRecurringSubscriptionUseCase,
