@@ -5,33 +5,29 @@ export interface MercadoPagoSubscriptionRequest {
   auto_recurring: {
     frequency: number; // 1 para mensal
     frequency_type: string; // 'months'
+    transaction_amount: number; // Valor da cobrança
+    currency_id: string; // 'BRL'
   };
   payer_email: string;
-  card_token_id?: string;
-  payment_method_id?: 'debit_card' | 'credit_card';
-  back_urls?: {
-    success: string;
-    failure: string;
-    pending: string;
-  };
+  back_url: string;
   external_reference?: string;
-  notification_url?: string;
 }
 
 export interface MercadoPagoSubscriptionResponse {
   id: string;
   reason: string;
   status: string;
-  init_point?: string;
+  init_point: string;
   sandbox_init_point?: string;
   payer_email: string;
   auto_recurring: {
     frequency: number;
     frequency_type: string;
+    transaction_amount: number;
+    currency_id: string;
   };
-  first_invoice_date?: string;
-  next_invoice_date?: string;
-  subscription_sequence?: number;
+  date_created: string;
+  last_modified: string;
 }
 
 @Injectable()
@@ -52,12 +48,16 @@ export class MercadoPagoSubscriptionService {
     });
 
     const response = await fetch(
-      'https://api.mercadopago.com/v1/recurring_subscriptions',
+      'https://api.mercadopago.com/preapproval',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${mercadoPagoToken}`,
+        },
+        body: JSON.stringify(data),
+      },
+    );
         },
         body: JSON.stringify(data),
       },
@@ -87,7 +87,7 @@ export class MercadoPagoSubscriptionService {
     console.log('📤 Cancelando assinatura no Mercado Pago:', subscriptionId);
 
     const response = await fetch(
-      `https://api.mercadopago.com/v1/recurring_subscriptions/${subscriptionId}`,
+      `https://api.mercadopago.com/preapproval/${subscriptionId}`,
       {
         method: 'PUT',
         headers: {
@@ -124,7 +124,7 @@ export class MercadoPagoSubscriptionService {
     }
 
     const response = await fetch(
-      `https://api.mercadopago.com/v1/recurring_subscriptions/${subscriptionId}`,
+      `https://api.mercadopago.com/preapproval/${subscriptionId}`,
       {
         method: 'GET',
         headers: {

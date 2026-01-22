@@ -87,15 +87,12 @@ export class CreateSubscriptionPaymentUseCase {
           auto_recurring: {
             frequency: 1,
             frequency_type: 'months',
+            transaction_amount: amount,
+            currency_id: 'BRL',
           },
           payer_email: input.payerEmail,
-          back_urls: {
-            success: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-success`,
-            failure: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-failure`,
-            pending: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-pending`,
-          },
+          back_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/assinatura/payment-success`,
           external_reference: subscription.id,
-          notification_url: `${process.env.API_URL || 'http://localhost:3001'}/api/subscriptions/webhook/mercadopago`,
         });
 
       // Atualizar subscription com ID do Mercado Pago
