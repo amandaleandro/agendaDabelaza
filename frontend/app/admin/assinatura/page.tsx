@@ -238,7 +238,11 @@ function AssinaturaContent() {
 
   const handleConfirmChange = async () => {
     if (!selectedPlan) return;
-
+    // Validar IDs
+    if (!establishmentId || !ownerId) {
+      setError('Estabelecimento ou proprietário não identificados. Faça login novamente.');
+      return;
+    }
     setProcessingChange(true);
     setError('');
     setSuccess('');
