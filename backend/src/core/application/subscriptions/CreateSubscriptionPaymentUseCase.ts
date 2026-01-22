@@ -139,7 +139,6 @@ export class CreateSubscriptionPaymentUseCase {
       return {
         paymentId: 'PREF_' + mpPreferenceResponse.id,
         preferenceId: mpPreferenceResponse.id,
-        preferenceId: mpPreferenceResponse.id,
         subscriptionId: subscription.id,
         initPoint: initPoint,
         amount: amount,

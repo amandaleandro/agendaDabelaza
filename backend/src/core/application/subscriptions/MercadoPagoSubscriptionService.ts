@@ -58,10 +58,6 @@ export class MercadoPagoSubscriptionService {
         body: JSON.stringify(data),
       },
     );
-        },
-        body: JSON.stringify(data),
-      },
-    );
 
     if (!response.ok) {
       const errorData = await response.json();
