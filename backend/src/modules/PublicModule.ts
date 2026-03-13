@@ -10,10 +10,11 @@ import { PrismaEstablishmentRepository } from '../core/infrastructure/repositori
 import { AppointmentModule } from './AppointmentModule';
 import { PublicAuthController } from '../core/infrastructure/http/controllers/PublicAuthController';
 import { PublicUserController } from '../core/infrastructure/http/controllers/PublicUserController';
+import { PublicServicePlanController } from '../core/infrastructure/http/controllers/PublicServicePlanController';
 
 @Module({
   imports: [AppointmentModule],
-  controllers: [PublicEstablishmentController, PublicAppointmentController, PublicClientSubscriptionController, EstablishmentController, ServicePlanController, AdminServicePlanController, PublicAuthController, PublicUserController],
+  controllers: [PublicEstablishmentController, PublicAppointmentController, PublicClientSubscriptionController, EstablishmentController, ServicePlanController, AdminServicePlanController, PublicAuthController, PublicUserController, PublicServicePlanController],
   providers: [
     PrismaService,
     {

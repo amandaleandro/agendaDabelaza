@@ -34,13 +34,29 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await apiClient.login({
+
+      // Se houver establishmentSlug no localStorage, enviar junto
+      const establishmentSlug = localStorage.getItem('establishmentSlug') || undefined;
+      const response = await apiClient.loginPublic({
         email: formData.email,
         password: formData.password,
+        establishmentSlug,
       });
-      
+
       login(response.token, response.owner, response.establishment);
-      
+
+      // Salvar dados do estabelecimento no localStorage
+      if (response.establishment) {
+        localStorage.setItem('establishmentId', response.establishment.id);
+        localStorage.setItem('establishmentName', response.establishment.name);
+        localStorage.setItem('establishmentSlug', response.establishment.slug);
+      }
+
+      // Salvar ownerId para facilitar chamadas de API
+      if (response.owner?.id) {
+        localStorage.setItem('ownerId', response.owner.id);
+      }
+
       router.push('/admin/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.');
@@ -67,7 +83,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-[500px]">
+      <div className="sm:mx-auto sm:w-full sm:max-w-125">
         <div className="bg-[#1e293b] py-8 px-4 shadow-2xl border border-slate-800/60 sm:rounded-2xl sm:px-10 relative overflow-hidden">
           
           {error && (

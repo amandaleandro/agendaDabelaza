@@ -1,3 +1,4 @@
+'export const dynamic = "force-dynamic";'
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -230,8 +231,79 @@ export default function PlanosPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center justify-center h-96">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <span className="text-indigo-300">Carregando planos...</span>
+      </div>
+    );
+  }
+
+  if (!loading && plans.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <span className="text-red-400">Nenhum plano encontrado ou erro ao carregar planos.</span>
+        <div className="flex gap-2">
+          <button
+            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            onClick={loadPlans}
+          >
+            Tentar novamente
+          </button>
+          <button
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
+          >
+            Novo Plano
+          </button>
+        </div>
+        {showModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-linear-to-r from-indigo-600 to-blue-600 text-white p-6 rounded-t-2xl">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Sparkles className="w-6 h-6" />
+                  Novo Plano
+                </h2>
+              </div>
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                {/* Basic Info */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Nome do Plano *
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2"
+                      value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  {/* ...outros campos do formulário podem ser adicionados aqui... */}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                    onClick={() => setShowModal(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -258,7 +330,7 @@ export default function PlanosPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
+        <div className="bg-linear-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <Crown className="w-8 h-8 opacity-80" />
             <span className="text-3xl font-black">{stats.totalPlans}</span>
@@ -266,7 +338,7 @@ export default function PlanosPage() {
           <p className="text-blue-100 font-medium">Total de Planos</p>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-xl">
+        <div className="bg-linear-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <CheckCircle2 className="w-8 h-8 opacity-80" />
             <span className="text-3xl font-black">{stats.activePlans}</span>
@@ -274,7 +346,7 @@ export default function PlanosPage() {
           <p className="text-green-100 font-medium">Planos Ativos</p>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+        <div className="bg-linear-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <Users className="w-8 h-8 opacity-80" />
             <span className="text-3xl font-black">{stats.totalSubscribers}</span>
@@ -282,7 +354,7 @@ export default function PlanosPage() {
           <p className="text-purple-100 font-medium">Assinantes</p>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
+        <div className="bg-linear-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <DollarSign className="w-8 h-8 opacity-80" />
             <span className="text-3xl font-black">R$ {stats.monthlyRevenue.toFixed(0)}</span>
@@ -301,7 +373,7 @@ export default function PlanosPage() {
             }`}
           >
             {/* Plan Header */}
-            <div className="bg-gradient-to-br from-indigo-600 to-blue-600 rounded-t-2xl p-6 text-white relative overflow-hidden">
+            <div className="bg-linear-to-br from-indigo-600 to-blue-600 rounded-t-2xl p-6 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12" />
               
@@ -341,7 +413,7 @@ export default function PlanosPage() {
               <div className="space-y-2">
                 {plan.benefits.map((benefit, index) => (
                   <div key={index} className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
                     <span className="text-slate-600 text-sm">{benefit}</span>
                   </div>
                 ))}
@@ -389,7 +461,7 @@ export default function PlanosPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-6 rounded-t-2xl">
+            <div className="sticky top-0 bg-linear-to-r from-indigo-600 to-blue-600 text-white p-6 rounded-t-2xl">
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <Sparkles className="w-6 h-6" />
                 {editingPlan ? 'Editar Plano' : 'Novo Plano'}

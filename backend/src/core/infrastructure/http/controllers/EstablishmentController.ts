@@ -1,4 +1,6 @@
-import { Controller, Get, Put, Param, Body } from '@nestjs/common';
+import { Controller, Get, Put, Param, Body, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
 import { PrismaEstablishmentRepository } from '../../repositories/PrismaEstablishmentRepository';
 import { UpdateEstablishmentLandingDto } from '../dtos/UpdateEstablishmentLandingDto';
 import { PrismaService } from '../../database/prisma/PrismaService';
@@ -9,6 +11,30 @@ export class EstablishmentController {
     private readonly establishmentRepository: PrismaEstablishmentRepository,
     private readonly prisma: PrismaService,
   ) {}
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('me')
+  async getMyEstablishment(@Req() req: any) {
+    const ownerId = req.user?.ownerId;
+    if (!ownerId) {
+      throw new UnauthorizedException('Usuário não autenticado');
+    }
+    const establishment = await this.establishmentRepository.findByOwnerId(ownerId);
+    if (!establishment) {
+      return { message: 'Estabelecimento não encontrado para o usuário logado.' };
+    }
+    return {
+      id: establishment.id,
+      name: establishment.name,
+      slug: establishment.slug,
+      ownerId: establishment.ownerId,
+      primaryColor: establishment.primaryColor,
+      secondaryColor: establishment.secondaryColor,
+      accentColor: (establishment as any).accentColor,
+      bio: establishment.bio,
+      createdAt: establishment.createdAt?.toISOString(),
+    };
+  }
 
   @Get()
   async list() {

@@ -49,8 +49,22 @@ export class ApiClient {
     return response.data;
   }
 
-  async login(data: any): Promise<any> {
-    const response = await this.client.post('/auth/login', data);
+
+  /**
+   * Login público (cliente)
+   * @param data { email, password, establishmentSlug? }
+   */
+  async loginPublic(data: { email: string; password: string; establishmentSlug?: string }): Promise<any> {
+    const response = await this.client.post('/api/public/auth/login', data);
+    return response.data;
+  }
+
+  /**
+   * Login admin (owner)
+   * @param data { email, password }
+   */
+  async loginAdmin(data: { email: string; password: string }): Promise<any> {
+    const response = await this.client.post('/api/auth/login', data);
     return response.data;
   }
 

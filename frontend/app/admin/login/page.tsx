@@ -1,6 +1,6 @@
 'use client';
 
-import { API_BASE_URL } from '@/config/api';
+import { ApiClient } from '@/services/api';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -31,22 +31,10 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Chama API de login
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      // Chama API de login admin (owner)
+      const apiClient = new ApiClient();
+      const data = await apiClient.loginAdmin({ email, password });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Erro ao fazer login');
-      }
-
-      const data = await response.json();
-      
       login(
         data.token,
         {
@@ -66,7 +54,7 @@ export default function AdminLoginPage() {
 
       // Salvar ownerId para facilitar chamadas de API
       localStorage.setItem('ownerId', data.owner.id);
-      
+
       router.push('/admin/dashboard');
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer login');
@@ -76,11 +64,11 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600 mb-2">
+          <h1 className="text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-blue-600 mb-2">
             AppointPro Beauty
           </h1>
           <p className="text-gray-600 text-lg">Painel do Prestador</p>

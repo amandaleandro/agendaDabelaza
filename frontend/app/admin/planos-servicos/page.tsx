@@ -43,10 +43,39 @@ export default function PlanosServicosPage() {
     services: [],
   });
   const [establishmentId, setEstablishmentId] = useState('');
+  // Corrigir regra dos hooks: mover para o topo
+  const [manualEstId, setManualEstId] = useState('');
 
   useEffect(() => {
-    const estId = localStorage.getItem('establishmentId') || '';
-    setEstablishmentId(estId);
+    // Buscar establishmentId automaticamente da API
+    const fetchEstablishment = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await fetch(`${API_BASE_URL}/establishments/me`, { credentials: 'include' });
+        let apiError = '';
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.id) {
+            setEstablishmentId(data.id);
+          } else {
+            apiError = `Estabelecimento não encontrado para o usuário logado. Resposta: ${JSON.stringify(data)}`;
+          }
+        } else {
+          let errMsg = '';
+          try {
+            errMsg = await res.text();
+          } catch {}
+          apiError = `Erro ao buscar estabelecimento do usuário. Status: ${res.status}. Resposta: ${errMsg}`;
+        }
+        if (apiError) setError(apiError);
+      } catch (err) {
+        setError('Erro ao buscar estabelecimento: ' + (err instanceof Error ? err.message : String(err)));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEstablishment();
   }, []);
 
   useEffect(() => {
@@ -225,14 +254,55 @@ export default function PlanosServicosPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-slate-900 to-slate-800">
         <div className="text-white text-xl">Carregando...</div>
       </div>
     );
   }
 
+  if (error && !showForm && plans.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-slate-900 to-slate-800 p-6">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <div className="text-red-400 text-lg mb-2">{error}</div>
+        <div className="w-full max-w-xs flex flex-col gap-2 mt-4">
+          <input
+            type="text"
+            placeholder="Cole o ID do estabelecimento"
+            value={manualEstId}
+            onChange={e => setManualEstId(e.target.value)}
+            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <button
+            onClick={() => {
+              if (manualEstId.trim()) {
+                localStorage.setItem('establishmentId', manualEstId.trim());
+                setError('');
+                setLoading(true);
+                setEstablishmentId(manualEstId.trim());
+              }
+            }}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors mt-2"
+          >
+            Salvar e Continuar
+          </button>
+        </div>
+        <button
+          onClick={() => {
+            setError('');
+            setLoading(true);
+            setEstablishmentId(localStorage.getItem('establishmentId') || '');
+          }}
+          className="mt-4 bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
@@ -254,14 +324,14 @@ export default function PlanosServicosPage() {
         {/* Alertas */}
         {error && (
           <div className="mb-6 bg-red-500/10 border border-red-500 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
             <p className="text-red-400">{error}</p>
           </div>
         )}
 
         {success && (
           <div className="mb-6 bg-green-500/10 border border-green-500 rounded-lg p-4 flex items-start gap-3">
-            <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
             <p className="text-green-400">{success}</p>
           </div>
         )}
@@ -478,12 +548,19 @@ export default function PlanosServicosPage() {
           </h2>
 
           {plans.length === 0 ? (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-12 text-center">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-12 text-center flex flex-col items-center justify-center gap-4">
               <Package className="w-12 h-12 text-slate-600 mx-auto mb-4" />
               <p className="text-slate-400 text-lg">Nenhum plano criado ainda</p>
               <p className="text-slate-500 text-sm mt-1">
-                Clique em "Novo Plano" para começar
+                Cadastre seu primeiro plano para começar a vender pacotes de serviços.
               </p>
+              <button
+                onClick={() => setShowForm(true)}
+                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 mx-auto"
+              >
+                <Plus className="w-5 h-5" />
+                Criar Plano
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ShoppingCart, Check, Sparkles, AlertCircle } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEstablishmentTheme } from '@/hooks/useEstablishmentTheme';
+import { useAuth } from '@/store/auth';
 import { API_BASE_URL } from '@/config/api';
 
 interface ServiceInPlan {
@@ -34,6 +35,7 @@ export default function ComprarPlanosPage() {
   const params = useParams();
   const slug = params.slug as string;
   const router = useRouter();
+  const { establishment: loggedEstablishment } = useAuth();
 
   const [plans, setPlans] = useState<ServicePlan[]>([]);
   const [establishment, setEstablishment] = useState<Establishment | null>(null);
@@ -45,21 +47,28 @@ export default function ComprarPlanosPage() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    loadData();
-  }, [slug]);
+    // Se houver estabelecimento logado, usa ele
+    if (loggedEstablishment) {
+      setEstablishment(loggedEstablishment);
+      loadPlans(loggedEstablishment.slug);
+    } else {
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, loggedEstablishment]);
 
   const { primary, secondary, hexToRgba } = useEstablishmentTheme({
-    slug,
+    slug: establishment?.slug || slug,
     initialPrimary: establishment?.primaryColor,
     initialSecondary: establishment?.secondaryColor,
     persistSlug: true,
     fetchIfMissing: !establishment?.primaryColor || !establishment?.secondaryColor,
   });
 
+  // Busca estabelecimento e planos pelo slug da URL (caso não esteja logado)
   const loadData = async () => {
     setLoading(true);
     setError('');
-
     try {
       // Buscar estabelecimento
       const estabResponse = await fetch(
@@ -68,18 +77,34 @@ export default function ComprarPlanosPage() {
       if (estabResponse.ok) {
         const estabData = await estabResponse.json();
         setEstablishment(estabData);
+        await loadPlans(estabData.slug);
+      } else {
+        setEstablishment(null);
+        setPlans([]);
       }
+    } catch (err: any) {
+      console.error('Erro ao carregar dados:', err);
+      setError('Erro ao carregar planos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Buscar planos de serviços
+  // Busca apenas os planos para um slug
+  const loadPlans = async (estabSlug: string) => {
+    setLoading(true);
+    setError('');
+    try {
       const plansResponse = await fetch(
-        `${API_BASE_URL}/service-plans/public/${slug}`
+        `${API_BASE_URL}/service-plans/public/${estabSlug}`
       );
       if (plansResponse.ok) {
         const plansData = await plansResponse.json();
         setPlans(Array.isArray(plansData) ? plansData : []);
+      } else {
+        setPlans([]);
       }
     } catch (err: any) {
-      console.error('Erro ao carregar dados:', err);
       setError('Erro ao carregar planos');
     } finally {
       setLoading(false);
@@ -152,7 +177,7 @@ export default function ComprarPlanosPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-slate-900 to-slate-800">
         <div className="text-white text-xl">Carregando planos...</div>
       </div>
     );
@@ -160,7 +185,7 @@ export default function ComprarPlanosPage() {
 
   if (!establishment) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-slate-900 to-slate-800">
         <div className="text-center">
           <h1 className="text-white text-2xl font-bold mb-2">Estabelecimento não encontrado</h1>
           <p className="text-slate-400">Verifique a URL e tente novamente</p>
@@ -170,7 +195,7 @@ export default function ComprarPlanosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -181,14 +206,14 @@ export default function ComprarPlanosPage() {
         {/* Alertas */}
         {error && (
           <div className="mb-6 bg-red-500/10 border border-red-500 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
             <p className="text-red-400">{error}</p>
           </div>
         )}
 
         {success && (
           <div className="mb-6 bg-green-500/10 border border-green-500 rounded-lg p-4 flex items-start gap-3">
-            <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <Check className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
             <p className="text-green-400">{success}</p>
           </div>
         )}
@@ -227,7 +252,7 @@ export default function ComprarPlanosPage() {
                   <div className="space-y-2">
                     {plan.services.map((service, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-slate-300">
-                        <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                        <Check className="w-4 h-4 text-green-400 shrink-0" />
                         <span className="text-sm">
                           <strong>{service.quantity}x</strong> {service.serviceName}
                         </span>
