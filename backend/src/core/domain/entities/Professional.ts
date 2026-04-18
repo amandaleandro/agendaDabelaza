@@ -7,6 +7,7 @@ export class Professional {
     public readonly phone: string,
     public readonly createdAt: Date,
     public readonly freelancer: boolean = false,
+    public readonly password: string | null = null,
   ) {}
 
   static create(props: {
@@ -16,6 +17,7 @@ export class Professional {
     email: string;
     phone: string;
     freelancer?: boolean;
+    password?: string | null;
   }): Professional {
     if (!props.id || !props.establishmentId || !props.name || !props.email) {
       throw new Error(
@@ -31,6 +33,7 @@ export class Professional {
       props.phone,
       new Date(),
       props.freelancer ?? false,
+      props.password ?? null,
     );
   }
 
@@ -42,6 +45,7 @@ export class Professional {
     phone: string;
     createdAt: Date;
     freelancer?: boolean;
+    password?: string | null;
   }): Professional {
     return new Professional(
       props.id,
@@ -51,6 +55,7 @@ export class Professional {
       props.phone,
       props.createdAt,
       props.freelancer ?? false,
+      props.password ?? null,
     );
   }
 }

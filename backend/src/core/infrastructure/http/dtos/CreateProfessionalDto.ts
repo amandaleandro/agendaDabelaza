@@ -23,4 +23,8 @@ export class CreateProfessionalDto {
   @IsOptional()
   @IsBoolean()
   freelancer?: boolean;
+
+  @IsOptional()
+  @IsString()
+  password?: string;
 }

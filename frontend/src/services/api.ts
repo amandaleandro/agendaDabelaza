@@ -72,6 +72,11 @@ export class ApiClient {
     return response.data;
   }
 
+  async loginProfessional(data: { email: string; password: string }): Promise<any> {
+    const response = await this.client.post('/professional-auth/login', data);
+    return response.data;
+  }
+
   // ========== ESTABLISHMENTS ==========
 
   async listEstablishments(): Promise<any[]> {
@@ -180,6 +185,11 @@ export class ApiClient {
     return response.data;
   }
 
+  async listAppointmentsByProfessional(professionalId: string): Promise<Appointment[]> {
+    const response = await this.client.get(`/appointments/professional/${professionalId}`);
+    return response.data;
+  }
+
   async cancelAppointment(id: string): Promise<void> {
     await this.client.delete(`/appointments/${id}`);
   }
@@ -193,6 +203,30 @@ export class ApiClient {
 
   async getProfessionalSchedules(professionalId: string): Promise<Schedule[]> {
     const response = await this.client.get(`/professionals/${professionalId}/schedules`);
+    return response.data;
+  }
+
+  async addProductToAppointment(
+    appointmentId: string,
+    data: { productId: string; quantity: number },
+  ): Promise<any> {
+    const response = await this.client.post(`/products/appointments/${appointmentId}/items`, data);
+    return response.data;
+  }
+
+  async addServiceItemToAppointment(
+    appointmentId: string,
+    data: { serviceId: string; quantity: number },
+  ): Promise<any> {
+    const response = await this.client.post(`/appointments/${appointmentId}/service-items`, data);
+    return response.data;
+  }
+
+  async completeAppointment(
+    appointmentId: string,
+    data: { paymentMethod?: string },
+  ): Promise<any> {
+    const response = await this.client.post(`/appointments/${appointmentId}/complete`, data);
     return response.data;
   }
 

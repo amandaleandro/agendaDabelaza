@@ -48,7 +48,8 @@ export default function ProfessionalsPage() {
     establishmentId: '', // Will be set on modal open
     name: '',
     email: '',
-    phone: ''
+    phone: '',
+    password: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -124,7 +125,8 @@ export default function ProfessionalsPage() {
         establishmentId: establishmentId, 
         name: professional.name, 
         email: professional.email, 
-        phone: professional.phone 
+        phone: professional.phone,
+        password: '',
       });
     } else {
       setEditingId(null);
@@ -132,7 +134,8 @@ export default function ProfessionalsPage() {
         establishmentId: establishmentId, 
         name: '', 
         email: '', 
-        phone: '' 
+        phone: '',
+        password: '',
       });
     }
     setIsModalOpen(true);
@@ -156,7 +159,7 @@ export default function ProfessionalsPage() {
         setSuccessMessage('Profissional criado com sucesso!');
       }
       setIsModalOpen(false);
-      setFormData({ establishmentId: '', name: '', email: '', phone: '' });
+      setFormData({ establishmentId: '', name: '', email: '', phone: '', password: '' });
     } catch (error) {
       console.error('Erro ao salvar profissional:', error);
       setErrorMessage('Erro ao salvar profissional. Verifique os dados e tente novamente.');
@@ -548,6 +551,23 @@ export default function ProfessionalsPage() {
                   placeholder="(11) 99999-9999"
                   className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                  {editingId ? 'Nova senha do portal do profissional' : 'Senha do portal do profissional *'}
+                </label>
+                <input
+                  type="password"
+                  required={!editingId}
+                  value={formData.password || ''}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder={editingId ? 'Deixe em branco para manter a atual' : 'Crie uma senha de acesso'}
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                <p className="mt-2 text-xs text-slate-500">
+                  O profissional vai usar este email e esta senha para acessar o portal em <code>/profissional/login</code>.
+                </p>
               </div>
 
               {/* Actions */}

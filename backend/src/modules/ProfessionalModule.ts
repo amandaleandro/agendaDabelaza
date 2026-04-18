@@ -13,9 +13,10 @@ import { ProfessionalController } from '../core/infrastructure/http/controllers/
 import { ProfessionalStatsController } from '../core/infrastructure/http/controllers/ProfessionalStatsController';
 import { ServiceController } from '../core/infrastructure/http/controllers/ServiceController';
 import { ScheduleController } from '../core/infrastructure/http/controllers/ScheduleController';
+import { ProfessionalAuthController } from '../core/infrastructure/http/controllers/ProfessionalAuthController';
 
 @Module({
-  controllers: [ProfessionalController, ProfessionalStatsController, ServiceController, ScheduleController],
+  controllers: [ProfessionalController, ProfessionalStatsController, ServiceController, ScheduleController, ProfessionalAuthController],
   providers: [
     PrismaService,
     {

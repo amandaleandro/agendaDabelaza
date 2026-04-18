@@ -27,6 +27,7 @@ export interface Professional {
   email: string;
   phone: string;
   createdAt: string;
+  role?: 'professional';
 }
 
 export interface Service {
@@ -84,6 +85,9 @@ export interface Appointment {
   price: number;
   depositPayment?: Payment | null;
   items?: AppointmentItem[];
+  serviceItems?: AppointmentServiceItem[];
+  totals?: AppointmentTotals;
+  payment?: Payment | null;
   createdAt: string;
   // Nested objects from API
   user?: {
@@ -102,8 +106,10 @@ export interface Appointment {
 
 export enum AppointmentStatus {
   SCHEDULED = 'SCHEDULED',
+  PAYMENT_PENDING = 'PAYMENT_PENDING',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  NO_SHOW = 'NO_SHOW',
 }
 
 export interface AppointmentItem {
@@ -113,6 +119,33 @@ export interface AppointmentItem {
   quantity: number;
   price: number;
   createdAt: string;
+  product?: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface AppointmentServiceItem {
+  id: string;
+  appointmentId: string;
+  serviceId: string;
+  quantity: number;
+  price: number;
+  createdAt: string;
+  service?: {
+    id: string;
+    name: string;
+    durationMinutes?: number;
+  };
+}
+
+export interface AppointmentTotals {
+  basePrice: number;
+  productsTotal: number;
+  servicesTotal: number;
+  total: number;
+  amountPaid: number;
+  remaining: number;
 }
 
 export interface Payment {
@@ -125,6 +158,8 @@ export interface Payment {
   transactionId?: string;
   transferId?: string;
   status: PaymentStatus;
+  paymentMethod?: string | null;
+  paidAt?: string | null;
   createdAt: string;
 }
 
@@ -176,6 +211,7 @@ export interface CreateProfessionalRequest {
   name: string;
   email: string;
   phone: string;
+  password?: string;
 }
 
 export interface CreateServiceRequest {

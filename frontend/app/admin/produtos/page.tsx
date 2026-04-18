@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { PlusCircle, Package, Loader2 } from 'lucide-react';
-import { useAuth } from '@/store/auth';
 import { ApiClient } from '@/services/api';
 import { Product, Professional } from '@/types';
 
@@ -91,11 +90,11 @@ export default function ProdutosPage() {
           <h1 className="text-3xl font-bold text-white">Produtos</h1>
           <p className="mt-1 text-sm text-slate-400">Gerencie itens, preços e estoque por profissional.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <select
             value={selectedProfessionalId}
             onChange={(e) => void handleFilterChange(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 sm:w-auto"
           >
             <option value="">Todos os profissionais</option>
             {professionals.map((pro) => (
@@ -106,7 +105,7 @@ export default function ProdutosPage() {
           </select>
           <button
             onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             disabled={!professionals.length}
           >
             <PlusCircle className="h-4 w-4" />
@@ -238,7 +237,7 @@ export default function ProdutosPage() {
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-slate-300">Preço (R$)</label>
                   <input

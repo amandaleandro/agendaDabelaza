@@ -164,17 +164,17 @@ export default function ClientesPage() {
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="mt-3 flex flex-wrap items-center gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                 <button
                   onClick={() => openEdit(client)}
-                  className="flex-1 rounded-lg bg-slate-800/60 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700/80 transition-colors flex items-center gap-2"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-slate-800/60 px-3 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-700/80"
                 >
                   <Edit className="h-4 w-4" /> Editar
                 </button>
                 <button
                   onClick={() => toggleBlock(client)}
                   disabled={workingId === client.id}
-                  className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-300 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                 >
                   {client.blocked ? <Shield className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
                   {client.blocked ? 'Desbloquear' : 'Bloquear'}
@@ -182,7 +182,7 @@ export default function ClientesPage() {
                 <button
                   onClick={() => handleDelete(client.id)}
                   disabled={workingId === client.id}
-                  className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 border border-red-500/30 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="flex items-center justify-center rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

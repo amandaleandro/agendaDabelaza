@@ -15,6 +15,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: professional.name,
         email: professional.email,
         phone: professional.phone,
+        password: professional.password,
         freelancer: professional.freelancer,
       },
     });
@@ -35,6 +36,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
       phone: row.phone,
       freelancer: row.freelancer,
       createdAt: row.createdAt,
+      password: row.password,
     });
   }
 
@@ -53,6 +55,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         phone: row.phone,
         freelancer: row.freelancer,
         createdAt: row.createdAt,
+        password: row.password,
       }),
     );
   }
@@ -71,6 +74,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         phone: row.phone,
         freelancer: row.freelancer,
         createdAt: row.createdAt,
+        password: row.password,
       }),
     );
   }
@@ -83,6 +87,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         name: professional.name,
         email: professional.email,
         phone: professional.phone,
+        password: professional.password,
         freelancer: professional.freelancer,
       },
     });
@@ -102,17 +107,31 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
         phone: row.phone,
         freelancer: row.freelancer,
         createdAt: row.createdAt,
+        password: row.password,
       }),
     );
   }
 
-  async updatePartial(id: string, data: Partial<Professional>): Promise<Professional> {
+  async findOneByEmail(email: string): Promise<Professional | null> {
+    const row = await this.prisma.professional.findFirst({
+      where: { email },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return row ? this.toDomain(row) : null;
+  }
+
+  async updatePartial(
+    id: string,
+    data: Partial<Professional> & { password?: string | null },
+  ): Promise<Professional> {
     const updated = await this.prisma.professional.update({
       where: { id },
       data: {
         name: data.name,
         email: data.email,
         phone: data.phone,
+        password: data.password,
         freelancer: data.freelancer,
       },
     });
@@ -130,6 +149,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
     name: string;
     email: string;
     phone: string;
+    password: string | null;
     freelancer: boolean;
     createdAt: Date;
   }): Professional {
@@ -141,6 +161,7 @@ export class PrismaProfessionalRepository implements ProfessionalRepository {
       phone: row.phone,
       freelancer: row.freelancer,
       createdAt: row.createdAt,
+      password: row.password,
     });
   }
 }

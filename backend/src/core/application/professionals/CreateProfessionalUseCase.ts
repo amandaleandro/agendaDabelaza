@@ -16,6 +16,7 @@ export class CreateProfessionalUseCase {
     email: string;
     phone: string;
     freelancer?: boolean;
+    password?: string;
   }) {
     const existingByEmail = await this.professionalRepository.findByEmail(
       input.email,
@@ -43,6 +44,7 @@ export class CreateProfessionalUseCase {
       email: input.email,
       phone: input.phone,
       freelancer: input.freelancer ?? false,
+      password: input.password ?? null,
     });
 
     await this.professionalRepository.save(professional);

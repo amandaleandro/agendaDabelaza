@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  BadRequestException,
   Post,
   Get,
   Delete,
@@ -100,6 +101,28 @@ export class AppointmentController {
             name: true,
           },
         },
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        serviceItems: {
+          include: {
+            service: {
+              select: {
+                id: true,
+                name: true,
+                durationMinutes: true,
+              },
+            },
+          },
+        },
+        payment: true,
       },
       orderBy: {
         scheduledAt: 'desc',
@@ -118,6 +141,37 @@ export class AppointmentController {
       service: apt.service,
       professional: apt.professional,
       user: apt.user,
+      items: apt.items.map((item) => ({
+        id: item.id,
+        appointmentId: item.appointmentId,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        createdAt: item.createdAt.toISOString(),
+        product: item.product,
+      })),
+      serviceItems: apt.serviceItems.map((item) => ({
+        id: item.id,
+        appointmentId: item.appointmentId,
+        serviceId: item.serviceId,
+        quantity: item.quantity,
+        price: item.price,
+        createdAt: item.createdAt.toISOString(),
+        service: item.service,
+      })),
+      payment: apt.payment
+        ? {
+            id: apt.payment.id,
+            appointmentId: apt.payment.appointmentId,
+            amount: apt.payment.amount,
+            type: apt.payment.type,
+            status: apt.payment.status,
+            paymentMethod: apt.payment.paymentMethod,
+            paidAt: apt.payment.paidAt?.toISOString() ?? null,
+            createdAt: apt.payment.createdAt.toISOString(),
+          }
+        : null,
+      totals: this.buildTotals(apt),
     }));
   }
 
@@ -144,6 +198,100 @@ export class AppointmentController {
     return this.listByUser(clientId);
   }
 
+  @Get('professional/:professionalId')
+  async listByProfessional(@Param('professionalId') professionalId: string) {
+    const appointments = await this.prisma.appointment.findMany({
+      where: { professionalId },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        service: {
+          select: {
+            id: true,
+            name: true,
+            durationMinutes: true,
+          },
+        },
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        serviceItems: {
+          include: {
+            service: {
+              select: {
+                id: true,
+                name: true,
+                durationMinutes: true,
+              },
+            },
+          },
+        },
+        payment: true,
+      },
+      orderBy: {
+        scheduledAt: 'asc',
+      },
+    });
+
+    return appointments.map((appointment) => ({
+      id: appointment.id,
+      userId: appointment.userId,
+      establishmentId: appointment.establishmentId,
+      professionalId: appointment.professionalId,
+      serviceId: appointment.serviceId,
+      scheduledAt: appointment.scheduledAt.toISOString(),
+      status: appointment.status,
+      price: appointment.price,
+      durationMinutes: appointment.durationMinutes,
+      createdAt: appointment.createdAt.toISOString(),
+      user: appointment.user,
+      service: appointment.service,
+      items: appointment.items.map((item) => ({
+        id: item.id,
+        appointmentId: item.appointmentId,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        createdAt: item.createdAt.toISOString(),
+        product: item.product,
+      })),
+      serviceItems: appointment.serviceItems.map((item) => ({
+        id: item.id,
+        appointmentId: item.appointmentId,
+        serviceId: item.serviceId,
+        quantity: item.quantity,
+        price: item.price,
+        createdAt: item.createdAt.toISOString(),
+        service: item.service,
+      })),
+      payment: appointment.payment
+        ? {
+            id: appointment.payment.id,
+            appointmentId: appointment.payment.appointmentId,
+            amount: appointment.payment.amount,
+            type: appointment.payment.type,
+            status: appointment.payment.status,
+            paymentMethod: appointment.payment.paymentMethod,
+            paidAt: appointment.payment.paidAt?.toISOString() ?? null,
+            createdAt: appointment.payment.createdAt.toISOString(),
+          }
+        : null,
+      totals: this.buildTotals(appointment),
+    }));
+  }
+
   @Get(':id')
   async get(@Param('id') id: string) {
     const appointment = await this.prisma.appointment.findUnique({
@@ -167,6 +315,28 @@ export class AppointmentController {
             phone: true,
           },
         },
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        serviceItems: {
+          include: {
+            service: {
+              select: {
+                id: true,
+                name: true,
+                durationMinutes: true,
+              },
+            },
+          },
+        },
+        payment: true,
       },
     });
 
@@ -184,6 +354,248 @@ export class AppointmentController {
       service: appointment.service,
       professional: appointment.professional,
       user: appointment.user,
+      items: appointment.items.map((item) => ({
+        id: item.id,
+        appointmentId: item.appointmentId,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        createdAt: item.createdAt.toISOString(),
+        product: item.product,
+      })),
+      serviceItems: appointment.serviceItems.map((item) => ({
+        id: item.id,
+        appointmentId: item.appointmentId,
+        serviceId: item.serviceId,
+        quantity: item.quantity,
+        price: item.price,
+        createdAt: item.createdAt.toISOString(),
+        service: item.service,
+      })),
+      payment: appointment.payment
+        ? {
+            id: appointment.payment.id,
+            appointmentId: appointment.payment.appointmentId,
+            amount: appointment.payment.amount,
+            type: appointment.payment.type,
+            status: appointment.payment.status,
+            paymentMethod: appointment.payment.paymentMethod,
+            paidAt: appointment.payment.paidAt?.toISOString() ?? null,
+            createdAt: appointment.payment.createdAt.toISOString(),
+          }
+        : null,
+      totals: this.buildTotals(appointment),
+    };
+  }
+
+  @Post(':id/service-items')
+  @HttpCode(HttpStatus.CREATED)
+  async addServiceItem(
+    @Param('id') appointmentId: string,
+    @Body() body: { serviceId?: string; quantity?: number },
+  ) {
+    const quantity = body.quantity ?? 1;
+    if (!body.serviceId) {
+      throw new BadRequestException('serviceId is required');
+    }
+
+    if (quantity <= 0) {
+      throw new BadRequestException('quantity must be greater than zero');
+    }
+
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { professionalId: true, status: true },
+    });
+
+    if (!appointment) {
+      throw new BadRequestException('Appointment not found');
+    }
+
+    if (!['SCHEDULED', 'PAYMENT_PENDING'].includes(appointment.status)) {
+      throw new BadRequestException('Only active appointments can receive extra services');
+    }
+
+    const service = await this.prisma.service.findUnique({
+      where: { id: body.serviceId },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        durationMinutes: true,
+        professionalId: true,
+      },
+    });
+
+    if (!service) {
+      throw new BadRequestException('Service not found');
+    }
+
+    if (service.professionalId !== appointment.professionalId) {
+      throw new BadRequestException('Service does not belong to this professional');
+    }
+
+    const item = await this.prisma.appointmentServiceItem.create({
+      data: {
+        appointmentId,
+        serviceId: service.id,
+        quantity,
+        price: service.price,
+      },
+      include: {
+        service: {
+          select: {
+            id: true,
+            name: true,
+            durationMinutes: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: item.id,
+      appointmentId: item.appointmentId,
+      serviceId: item.serviceId,
+      quantity: item.quantity,
+      price: item.price,
+      createdAt: item.createdAt.toISOString(),
+      service: item.service,
+    };
+  }
+
+  @Post(':id/complete')
+  @HttpCode(HttpStatus.OK)
+  async complete(
+    @Param('id') appointmentId: string,
+    @Body() body: { paymentMethod?: string },
+  ) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        items: true,
+        serviceItems: true,
+        payment: true,
+      },
+    });
+
+    if (!appointment) {
+      throw new BadRequestException('Appointment not found');
+    }
+
+    if (appointment.status !== 'SCHEDULED') {
+      throw new BadRequestException('Only scheduled appointments can be completed');
+    }
+
+    const basePrice = appointment.price;
+    const productsTotal = appointment.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const servicesTotal = appointment.serviceItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const total = basePrice + productsTotal + servicesTotal;
+    const amountPaid =
+      appointment.payment?.status === 'PAID' ? appointment.payment.amount : 0;
+    const remaining = Math.max(total - amountPaid, 0);
+
+    if (remaining > 0 && !body.paymentMethod) {
+      throw new BadRequestException(
+        'There is an outstanding balance. Inform paymentMethod to complete the service.',
+      );
+    }
+
+    if (body.paymentMethod) {
+      const now = new Date();
+      if (appointment.payment) {
+        await this.prisma.payment.update({
+          where: { id: appointment.payment.id },
+          data: {
+            amount: total,
+            status: 'PAID',
+            type: remaining > 0 ? 'FULL' : appointment.payment.type,
+            paymentMethod: body.paymentMethod,
+            paidAt: now,
+            updatedAt: now,
+          },
+        });
+      } else {
+        await this.prisma.payment.create({
+          data: {
+            appointmentId,
+            amount: total,
+            establishmentAmount: total,
+            platformFee: 0,
+            type: 'FULL',
+            status: 'PAID',
+            paymentMethod: body.paymentMethod,
+            paidAt: now,
+          },
+        });
+      }
+    }
+
+    const updated = await this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { status: 'COMPLETED' },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        service: {
+          select: {
+            id: true,
+            name: true,
+            durationMinutes: true,
+          },
+        },
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        serviceItems: {
+          include: {
+            service: {
+              select: {
+                id: true,
+                name: true,
+                durationMinutes: true,
+              },
+            },
+          },
+        },
+        payment: true,
+      },
+    });
+
+    return {
+      id: updated.id,
+      status: updated.status,
+      payment: updated.payment
+        ? {
+            id: updated.payment.id,
+            appointmentId: updated.payment.appointmentId,
+            amount: updated.payment.amount,
+            type: updated.payment.type,
+            status: updated.payment.status,
+            paymentMethod: updated.payment.paymentMethod,
+            paidAt: updated.payment.paidAt?.toISOString() ?? null,
+            createdAt: updated.payment.createdAt.toISOString(),
+          }
+        : null,
+      totals: this.buildTotals(updated),
     };
   }
 
@@ -234,6 +646,37 @@ export class AppointmentController {
       platformFeePercent: result.platformFeePercent,
       platformFee: result.platformFee,
       establishmentAmount: result.establishmentAmount,
+    };
+  }
+
+  private buildTotals(appointment: {
+    price: number;
+    items?: Array<{ price: number; quantity: number }>;
+    serviceItems?: Array<{ price: number; quantity: number }>;
+    payment?: { status: string; amount: number } | null;
+  }) {
+    const basePrice = appointment.price ?? 0;
+    const productsTotal =
+      appointment.items?.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      ) ?? 0;
+    const servicesTotal =
+      appointment.serviceItems?.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      ) ?? 0;
+    const total = basePrice + productsTotal + servicesTotal;
+    const amountPaid =
+      appointment.payment?.status === 'PAID' ? appointment.payment.amount : 0;
+
+    return {
+      basePrice,
+      productsTotal,
+      servicesTotal,
+      total,
+      amountPaid,
+      remaining: Math.max(total - amountPaid, 0),
     };
   }
 }

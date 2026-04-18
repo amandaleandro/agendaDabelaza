@@ -66,7 +66,13 @@ export const useAuth = create<AuthState>((set) => ({
         localStorage.setItem('establishmentId', establishment.id);
         localStorage.setItem('establishmentSlug', establishment.slug);
       }
-      localStorage.setItem('ownerId', user.id);
+      if (user?.role === 'professional') {
+        localStorage.setItem('professionalId', user.id);
+        localStorage.removeItem('ownerId');
+      } else {
+        localStorage.setItem('ownerId', user.id);
+        localStorage.removeItem('professionalId');
+      }
     }
     set({ token, user, establishment: establishment ?? null, isAuthenticated: true });
   },
@@ -81,6 +87,7 @@ export const useAuth = create<AuthState>((set) => ({
       localStorage.removeItem('establishmentId');
       localStorage.removeItem('establishmentSlug');
       localStorage.removeItem('ownerId');
+      localStorage.removeItem('professionalId');
     }
     set({ token: null, user: null, establishment: null, isAuthenticated: false });
   },

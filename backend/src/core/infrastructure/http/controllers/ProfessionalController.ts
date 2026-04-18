@@ -21,6 +21,7 @@ import { PrismaProfessionalRepository } from '../../database/repositories/Prisma
 import { PrismaServiceRepository } from '../../database/repositories/PrismaServiceRepository';
 import { PrismaScheduleRepository } from '../../database/repositories/PrismaScheduleRepository';
 import { PrismaProductRepository } from '../../database/repositories/PrismaProductRepository';
+import * as bcrypt from 'bcryptjs';
 
 @Controller('professionals')
 export class ProfessionalController {
@@ -44,6 +45,9 @@ export class ProfessionalController {
         email: dto.email,
         phone: dto.phone,
         freelancer: dto.freelancer,
+        password: dto.password
+          ? await bcrypt.hash(dto.password, 10)
+          : undefined,
       });
 
       return {
@@ -151,6 +155,7 @@ export class ProfessionalController {
       name: dto.name ?? professional.name,
       email: dto.email ?? professional.email,
       phone: dto.phone ?? professional.phone,
+      password: dto.password ? await bcrypt.hash(dto.password, 10) : undefined,
       freelancer: dto.freelancer ?? professional.freelancer,
     });
 
