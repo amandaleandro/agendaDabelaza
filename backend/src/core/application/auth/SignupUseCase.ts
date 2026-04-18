@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, Inject } from '@nestjs/common';
+import { Injectable, ConflictException, Inject, BadRequestException } from '@nestjs/common';
 import { hash } from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { Owner } from '../../domain/entities/Owner';
@@ -34,6 +34,10 @@ export class SignupUseCase {
   ) {}
 
   async execute(input: SignupInput) {
+    if (!input.password && !input.googleId) {
+      throw new BadRequestException('Password or Google login is required');
+    }
+
     // 1. Check if owner exists
     const existingOwner = await this.ownerRepository.findByEmail(input.email);
     if (existingOwner) {

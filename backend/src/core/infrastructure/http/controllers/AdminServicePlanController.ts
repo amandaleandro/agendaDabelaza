@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/PrismaService';
 
 interface CreateServicePlanDto {
+  establishmentId: string;
   name: string;
   description: string;
   totalPrice: number;
@@ -16,7 +17,6 @@ interface CreateServicePlanDto {
 export class AdminServicePlanController {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Listar planos de um estabelecimento
   @Get('establishment/:establishmentId')
   async listPlans(@Param('establishmentId') establishmentId: string) {
     const plans = await this.prisma.servicePlan.findMany({
@@ -41,7 +41,6 @@ export class AdminServicePlanController {
     }));
   }
 
-  // Obter um plano específico
   @Get(':planId')
   async getPlan(@Param('planId') planId: string) {
     const plan = await this.prisma.servicePlan.findUnique({
@@ -69,19 +68,16 @@ export class AdminServicePlanController {
     };
   }
 
-  // Criar novo plano
   @Post()
   async createPlan(@Body() dto: CreateServicePlanDto) {
-    // Para agora, vou criar um plano sem estabelecimento específico
-    // O frontend pode passar o establishmentId no body ou na sessão
     const plan = await this.prisma.servicePlan.create({
       data: {
-        establishmentId: '', // Será preenchido pelo frontend
+        establishmentId: dto.establishmentId,
         name: dto.name,
         description: dto.description,
         price: dto.totalPrice,
-        durationDays: 30, // Default
-        benefits: dto.services.map((s) => s.serviceId),
+        durationDays: 30,
+        benefits: dto.services.map((service) => service.serviceId),
         active: true,
       },
     });
@@ -101,7 +97,6 @@ export class AdminServicePlanController {
     };
   }
 
-  // Atualizar plano
   @Put(':planId')
   async updatePlan(
     @Param('planId') planId: string,
@@ -110,10 +105,11 @@ export class AdminServicePlanController {
     const plan = await this.prisma.servicePlan.update({
       where: { id: planId },
       data: {
+        ...(dto.establishmentId && { establishmentId: dto.establishmentId }),
         ...(dto.name && { name: dto.name }),
         ...(dto.description && { description: dto.description }),
         ...(dto.totalPrice !== undefined && { price: dto.totalPrice }),
-        ...(dto.services && { benefits: dto.services.map((s) => s.serviceId) }),
+        ...(dto.services && { benefits: dto.services.map((service) => service.serviceId) }),
       },
     });
 
@@ -132,7 +128,6 @@ export class AdminServicePlanController {
     };
   }
 
-  // Deletar plano
   @Delete(':planId')
   async deletePlan(@Param('planId') planId: string) {
     await this.prisma.servicePlan.delete({

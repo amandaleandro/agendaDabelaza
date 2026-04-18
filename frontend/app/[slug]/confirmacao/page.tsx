@@ -1,9 +1,10 @@
 'use client';
 
 import { API_BASE_URL } from '@/config/api';
-import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Check, Calendar, User, DollarSign, QrCode, ExternalLink, Mail } from 'lucide-react';
+import { Check, Calendar, User, DollarSign, QrCode, ExternalLink, Mail, Clock3 } from 'lucide-react';
 import { useEstablishmentTheme } from '@/hooks/useEstablishmentTheme';
 
 interface AppointmentDetails {
@@ -46,13 +47,12 @@ export default function ConfirmacaoPage() {
     fetchIfMissing: true,
   });
 
-  useEffect(() => {
-    if (appointmentId) {
-      loadAppointmentDetails();
+  const loadAppointmentDetails = useCallback(async () => {
+    if (!appointmentId) {
+      setLoading(false);
+      return;
     }
-  }, [appointmentId]);
 
-  const loadAppointmentDetails = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/appointments/${appointmentId}`);
       if (response.ok) {
@@ -70,7 +70,11 @@ export default function ConfirmacaoPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appointmentId]);
+
+  useEffect(() => {
+    void loadAppointmentDetails();
+  }, [loadAppointmentDetails]);
 
   const handleGeneratePaymentLink = async () => {
     if (!appointment) return;
@@ -95,9 +99,13 @@ export default function ConfirmacaoPage() {
 
       const data = await response.json();
       setPaymentLink(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao gerar link:', error);
-      setError(error.message || 'Erro ao gerar link de pagamento');
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Erro ao gerar link de pagamento';
+      setError(message);
     } finally {
       setLoadingPayment(false);
     }
@@ -105,7 +113,7 @@ export default function ConfirmacaoPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-900 to-slate-800">
         <div
           className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin"
           style={{ borderColor: primary }}
@@ -116,7 +124,7 @@ export default function ConfirmacaoPage() {
 
   if (!appointment) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-900 to-slate-800">
         <div className="text-center">
           <p className="text-red-400 text-xl">Agendamento não encontrado</p>
           <button
@@ -138,16 +146,32 @@ export default function ConfirmacaoPage() {
     day: 'numeric'
   });
 
+  const isPaymentPending = appointment.status === 'PAYMENT_PENDING';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-900 to-slate-800 px-4 py-12">
       <div className="max-w-3xl w-full">
         {/* Success Icon */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-green-500 rounded-full mb-6 animate-bounce">
-            <Check className="w-12 h-12 text-white" />
+          <div
+            className={`inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 animate-bounce ${
+              isPaymentPending ? 'bg-amber-500' : 'bg-green-500'
+            }`}
+          >
+            {isPaymentPending ? (
+              <Clock3 className="w-12 h-12 text-white" />
+            ) : (
+              <Check className="w-12 h-12 text-white" />
+            )}
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Agendamento Confirmado!</h1>
-          <p className="text-xl text-slate-300">Seu horário foi reservado com sucesso</p>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            {isPaymentPending ? 'Reserva Pendente de Pagamento' : 'Agendamento Confirmado!'}
+          </h1>
+          <p className="text-xl text-slate-300">
+            {isPaymentPending
+              ? 'Seu horário está reservado e será confirmado após a aprovação do pagamento.'
+              : 'Seu horário foi reservado com sucesso'}
+          </p>
         </div>
 
         {/* Appointment Details */}
@@ -221,7 +245,9 @@ export default function ConfirmacaoPage() {
         >
           <h2 className="text-2xl font-bold text-white mb-4">💳 Pagamento Online</h2>
           <p className="text-slate-300 mb-6">
-            Finalize seu agendamento realizando o pagamento online via PIX
+            {isPaymentPending
+              ? 'Finalize o pagamento via PIX para confirmar seu agendamento automaticamente.'
+              : 'Finalize seu agendamento realizando o pagamento online via PIX'}
           </p>
 
           {!paymentLink && (
@@ -256,10 +282,13 @@ export default function ConfirmacaoPage() {
               {/* QR Code */}
               {paymentLink.pixQrCodeBase64 && (
                 <div className="bg-white p-4 rounded-xl flex justify-center">
-                  <img 
+                  <Image
                     src={`data:image/png;base64,${paymentLink.pixQrCodeBase64}`}
                     alt="QR Code PIX"
-                    className="w-64 h-64"
+                    width={256}
+                    height={256}
+                    unoptimized
+                    className="h-64 w-64"
                   />
                 </div>
               )}

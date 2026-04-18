@@ -16,7 +16,7 @@ cp .env.example .env.local
 
 Edite `.env.local`:
 ```
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
+NEXT_PUBLIC_API_URL=http://localhost:3010/api
 ```
 
 ### 3. Rodar em Desenvolvimento
@@ -24,7 +24,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 npm run dev
 ```
 
-A interface estará disponível em: `http://localhost:3001`
+A interface estará disponível em: `http://localhost:3003`
 
 ## 📁 Estrutura
 

@@ -184,6 +184,7 @@ model Appointment {
   professionalId String   @map("professional_id")
   serviceId      String   @map("service_id")
   scheduledAt    DateTime @map("scheduled_at")
+  holdExpiresAt  DateTime? @map("hold_expires_at")
   durationMinutes Int      @map("duration_minutes")
   status         String
   price          Float
@@ -196,15 +197,38 @@ model Appointment {
   items          AppointmentItem[]
   payment        Payment?
   refund         Refund?
+  whatsappReminders WhatsAppReminder[]
 
   @@map("appointments")
   @@index([userId])
   @@index([establishmentId])
   @@index([professionalId, scheduledAt])
+  @@index([holdExpiresAt])
   @@index([status])
   @@index([createdAt])
   @@index([establishmentId, status])
   @@index([establishmentId, createdAt])
+}
+
+model WhatsAppReminder {
+  id             String   @id @default(cuid())
+  appointmentId  String   @map("appointment_id")
+  type           String
+  channel        String   @default("WHATSAPP")
+  recipientPhone String   @map("recipient_phone")
+  sendAt         DateTime @map("send_at")
+  sentAt         DateTime? @map("sent_at")
+  status         String   @default("PENDING")
+  attempts       Int      @default(0)
+  errorMessage   String?  @map("error_message")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  appointment    Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_reminders")
+  @@index([appointmentId])
+  @@index([status, sendAt])
 }
 
 model AppointmentItem {

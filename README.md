@@ -77,7 +77,7 @@ npm run db:seed
 npm run start:dev
 ```
 
-A API estará disponível em: [http://localhost:3000/api](http://localhost:3000/api)
+A API estará disponível em: [http://localhost:3010/api](http://localhost:3010/api)
 
 ### 3. Setup Frontend (Opcional)
 
@@ -91,7 +91,7 @@ npm install
 npm run dev
 ```
 
-A interface estará disponível em: [http://localhost:3001](http://localhost:3001)
+A interface estará disponível em: [http://localhost:3003](http://localhost:3003)
 
 ---
 
@@ -277,8 +277,8 @@ MERCADOPAGO_PUBLIC_KEY=TEST-abcd1234-5678...
 
 # API
 API_PORT=3000
-API_URL=http://localhost:3000
-FRONTEND_URL=http://localhost:3001
+API_URL=http://localhost:3010
+FRONTEND_URL=http://localhost:3003
 ```
 
 Veja [.env.example](backend/.env.example) para referência.
@@ -293,9 +293,9 @@ Após iniciar os servidores localmente:
 
 | Serviço | URL | Descrição |
 |---------|-----|-----------|
-| **Frontend** | [http://localhost:3001](http://localhost:3001) | Interface do usuário |
-| **Backend API** | [http://localhost:3000/api](http://localhost:3000/api) | API REST |
-| **Health Check** | [http://localhost:3000/api/health](http://localhost:3000/api/health) | Status da API |
+| **Frontend** | [http://localhost:3003](http://localhost:3003) | Interface do usuário |
+| **Backend API** | [http://localhost:3010/api](http://localhost:3010/api) | API REST |
+| **Health Check** | [http://localhost:3010/api/health](http://localhost:3010/api/health) | Status da API |
 | **Prisma Studio** | [http://localhost:5555](http://localhost:5555) | Gerenciar banco (após `npm run db:studio`) |
 
 ### Produção (após deploy)

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ShoppingCart, Check, Sparkles, AlertCircle } from 'lucide-react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEstablishmentTheme } from '@/hooks/useEstablishmentTheme';
 import { useAuth } from '@/store/auth';
 import { API_BASE_URL } from '@/config/api';
@@ -34,7 +34,6 @@ interface Establishment {
 export default function ComprarPlanosPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const router = useRouter();
   const { establishment: loggedEstablishment } = useAuth();
 
   const [plans, setPlans] = useState<ServicePlan[]>([]);
@@ -82,7 +81,7 @@ export default function ComprarPlanosPage() {
         setEstablishment(null);
         setPlans([]);
       }
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Erro ao carregar dados:', err);
       setError('Erro ao carregar planos');
     } finally {
@@ -104,7 +103,7 @@ export default function ComprarPlanosPage() {
       } else {
         setPlans([]);
       }
-    } catch (err: any) {
+    } catch {
       setError('Erro ao carregar planos');
     } finally {
       setLoading(false);
@@ -167,8 +166,8 @@ export default function ComprarPlanosPage() {
       } else {
         setError(data.message || 'Erro ao processar compra');
       }
-    } catch (err: any) {
-      console.error('Erro:', err);
+    } catch (_err: Error | unknown) {
+      console.error('Erro:', _err);
       setError('Erro ao processar compra');
     } finally {
       setProcessing(false);

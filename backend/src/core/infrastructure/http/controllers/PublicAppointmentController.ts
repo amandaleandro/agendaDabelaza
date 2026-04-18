@@ -363,7 +363,15 @@ export class PublicAppointmentController {
             gte: dayStart,
             lte: dayEnd,
           },
-          status: { in: ['SCHEDULED', 'CONFIRMED'] },
+          OR: [
+            { status: 'SCHEDULED' },
+            {
+              status: 'PAYMENT_PENDING',
+              holdExpiresAt: {
+                gt: new Date(),
+              },
+            },
+          ],
         },
         include: {
           service: true,
@@ -517,7 +525,15 @@ export class PublicAppointmentController {
               gte: dayStart,
               lte: dayEnd,
             },
-            status: { in: ['SCHEDULED', 'CONFIRMED'] },
+            OR: [
+              { status: 'SCHEDULED' },
+              {
+                status: 'PAYMENT_PENDING',
+                holdExpiresAt: {
+                  gt: new Date(),
+                },
+              },
+            ],
           },
         });
 

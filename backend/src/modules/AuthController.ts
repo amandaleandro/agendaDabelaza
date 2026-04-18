@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { SignupUseCase } from '../core/application/auth/SignupUseCase';
 import { LoginUseCase } from '../core/application/auth/LoginUseCase';
+import { GoogleIdentityService } from '../core/application/auth/GoogleIdentityService';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 
@@ -19,7 +20,17 @@ export class AuthController {
   constructor(
     private readonly signupUseCase: SignupUseCase,
     private readonly loginUseCase: LoginUseCase,
+    private readonly googleIdentityService: GoogleIdentityService,
   ) {}
+
+  private slugify(value: string): string {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
 
   private generateToken(ownerId: string, email: string): string {
     return jwt.sign(
@@ -32,10 +43,14 @@ export class AuthController {
   @Post('login')
   async login(@Body() body: any, @Res() res: Response) {
     try {
+      const googleProfile = body.googleToken
+        ? await this.googleIdentityService.verify(body.googleToken)
+        : null;
+
       const result = await this.loginUseCase.execute({
-        email: body.email,
+        email: googleProfile?.email || body.email,
         password: body.password,
-        googleId: body.googleId,
+        googleId: googleProfile?.googleId || body.googleId,
       });
 
       const token = this.generateToken(result.owner.id, result.owner.email);
@@ -68,16 +83,33 @@ export class AuthController {
   @Post('signup')
   async signup(@Body() body: any, @Res() res: Response) {
     try {
+      const googleProfile = body.googleToken
+        ? await this.googleIdentityService.verify(body.googleToken)
+        : null;
+      const ownerName =
+        body.name?.trim() ||
+        body.ownerName?.trim() ||
+        googleProfile?.name ||
+        googleProfile?.email.split('@')[0];
+      const companyName =
+        body.establishmentName?.trim() ||
+        body.companyName?.trim() ||
+        ownerName;
+      const slug =
+        body.establishmentSlug?.trim() ||
+        body.slug?.trim() ||
+        (companyName ? this.slugify(companyName) : '');
+
       const result = await this.signupUseCase.execute({
-        ownerName: body.name || body.ownerName,
-        email: body.email,
+        ownerName,
+        email: googleProfile?.email || body.email,
         password: body.password,
         phone: body.phone,
-        companyName: body.establishmentName || body.companyName,
-        slug: body.establishmentSlug || body.slug,
+        companyName,
+        slug,
         bio: body.bio,
         primaryColor: body.primaryColor,
-        googleId: body.googleId,
+        googleId: googleProfile?.googleId || body.googleId,
         cnpj: body.cnpj,
         address: body.address,
         planType: body.planType, // Add plan selection

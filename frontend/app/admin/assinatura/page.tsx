@@ -40,6 +40,7 @@ interface CurrentSubscription {
 }
 
 interface SubscriptionStatus {
+  subscriptionId?: string;
   isActive: boolean;
   isExpired: boolean;
   isPending: boolean;

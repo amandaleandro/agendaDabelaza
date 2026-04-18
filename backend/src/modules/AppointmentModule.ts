@@ -12,12 +12,15 @@ import { CreateDepositPaymentUseCase } from '../core/application/payments/Create
 import { GetEstablishmentPlanUseCase } from '../core/application/subscriptions/GetEstablishmentPlanUseCase';
 import { AppointmentController } from '../core/infrastructure/http/controllers/AppointmentController';
 import { RefundController } from '../core/infrastructure/http/controllers/RefundController';
+import { WhatsAppController } from '../core/infrastructure/http/controllers/WhatsAppController';
 import { PlanResolverService } from '../core/domain/plans/PlanResolverService';
 import { MercadoPagoGateway } from '../core/infrastructure/payment-gateway/MercadoPagoGateway';
-import { ConsoleNotificationGateway } from '../core/infrastructure/notifications/ConsoleNotificationGateway';
+import { WhatsAppNotificationGateway } from '../core/infrastructure/notifications/WhatsAppNotificationGateway';
+import { WhatsAppAiService } from '../core/infrastructure/whatsapp/WhatsAppAiService';
+import { WhatsAppBaileysService } from '../core/infrastructure/whatsapp/WhatsAppBaileysService';
 
 @Module({
-  controllers: [AppointmentController, RefundController],
+  controllers: [AppointmentController, RefundController, WhatsAppController],
   providers: [
     PrismaService,
     {
@@ -46,7 +49,9 @@ import { ConsoleNotificationGateway } from '../core/infrastructure/notifications
       inject: [PrismaService],
     },
     MercadoPagoGateway,
-    ConsoleNotificationGateway,
+    WhatsAppAiService,
+    WhatsAppBaileysService,
+    WhatsAppNotificationGateway,
     {
       provide: PlanResolverService,
       useFactory: (subscriptionRepo) =>
@@ -55,7 +60,12 @@ import { ConsoleNotificationGateway } from '../core/infrastructure/notifications
     },
     {
       provide: CreateAppointmentUseCase,
-      useFactory: (appointmentRepo, serviceRepo, scheduleRepo, notificationGateway) =>
+      useFactory: (
+        appointmentRepo,
+        serviceRepo,
+        scheduleRepo,
+        notificationGateway,
+      ) =>
         new CreateAppointmentUseCase(
           appointmentRepo,
           serviceRepo,
@@ -66,7 +76,7 @@ import { ConsoleNotificationGateway } from '../core/infrastructure/notifications
         PrismaAppointmentRepository,
         PrismaServiceRepository,
         PrismaScheduleRepository,
-        ConsoleNotificationGateway,
+        WhatsAppNotificationGateway,
       ],
     },
     {
@@ -113,6 +123,7 @@ import { ConsoleNotificationGateway } from '../core/infrastructure/notifications
     CancelAppointmentUseCase,
     CreateDepositPaymentUseCase,
     CreateAppointmentPaymentLinkUseCase,
+    WhatsAppBaileysService,
   ],
 })
 export class AppointmentModule {}

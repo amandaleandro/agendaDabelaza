@@ -10,6 +10,7 @@ export class Appointment {
     public readonly professionalId: string,
     public readonly serviceId: string,
     public readonly scheduledAt: Date,
+    public holdExpiresAt: Date | null,
     public readonly durationMinutes: number,
     public status: AppointmentStatus,
     public readonly price: number,
@@ -64,11 +65,29 @@ export class Appointment {
       props.professionalId,
       props.serviceId,
       props.scheduledAt,
+      null,
       props.durationMinutes,
       AppointmentStatus.SCHEDULED,
       props.price,
       new Date(),
     );
+  }
+
+  static createPendingPayment(props: {
+    id: string;
+    userId: string;
+    establishmentId: string;
+    professionalId: string;
+    serviceId: string;
+    scheduledAt: Date;
+    durationMinutes: number;
+    price: number;
+    holdExpiresAt: Date;
+  }): Appointment {
+    const appointment = Appointment.create(props);
+    appointment.status = AppointmentStatus.PAYMENT_PENDING;
+    appointment.holdExpiresAt = props.holdExpiresAt;
+    return appointment;
   }
 
   static restore(props: {
@@ -78,6 +97,7 @@ export class Appointment {
     professionalId: string;
     serviceId: string;
     scheduledAt: Date;
+    holdExpiresAt: Date | null;
     durationMinutes: number;
     status: AppointmentStatus;
     price: number;
@@ -90,6 +110,7 @@ export class Appointment {
       props.professionalId,
       props.serviceId,
       props.scheduledAt,
+      props.holdExpiresAt,
       props.durationMinutes,
       props.status,
       props.price,
@@ -98,24 +119,47 @@ export class Appointment {
   }
 
   cancel(): void {
-    if (this.status !== AppointmentStatus.SCHEDULED) {
-      throw new Error('Only scheduled appointments can be cancelled');
+    if (
+      this.status !== AppointmentStatus.SCHEDULED &&
+      this.status !== AppointmentStatus.PAYMENT_PENDING
+    ) {
+      throw new Error('Only active appointments can be cancelled');
     }
     this.status = AppointmentStatus.CANCELLED;
+    this.holdExpiresAt = null;
   }
 
   cancelWithFee(now: Date, windowHours: number, feePercent: number): number {
-    if (this.status !== AppointmentStatus.SCHEDULED) {
-      throw new Error('Only scheduled appointments can be cancelled');
+    if (
+      this.status !== AppointmentStatus.SCHEDULED &&
+      this.status !== AppointmentStatus.PAYMENT_PENDING
+    ) {
+      throw new Error('Only active appointments can be cancelled');
+    }
+
+    if (this.status === AppointmentStatus.PAYMENT_PENDING) {
+      this.status = AppointmentStatus.CANCELLED;
+      this.holdExpiresAt = null;
+      return 0;
     }
 
     const diffMs = this.scheduledAt.getTime() - now.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
 
     this.status = AppointmentStatus.CANCELLED;
+    this.holdExpiresAt = null;
 
     if (diffHours >= windowHours) return 0;
     return (this.price * feePercent) / 100;
+  }
+
+  confirmPayment(): void {
+    if (this.status !== AppointmentStatus.PAYMENT_PENDING) {
+      throw new Error('Only payment pending appointments can be confirmed');
+    }
+
+    this.status = AppointmentStatus.SCHEDULED;
+    this.holdExpiresAt = null;
   }
 
   complete(): void {

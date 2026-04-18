@@ -20,6 +20,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
       professionalId: data.professionalId,
       serviceId: data.serviceId,
       scheduledAt: data.scheduledAt,
+      holdExpiresAt: data.holdExpiresAt,
       status: data.status as AppointmentStatus,
       price: data.price,
       createdAt: data.createdAt,
@@ -36,6 +37,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         professionalId: appointment.professionalId,
         serviceId: appointment.serviceId,
         scheduledAt: appointment.scheduledAt,
+        holdExpiresAt: appointment.holdExpiresAt,
         status: appointment.status,
         price: appointment.price,
         createdAt: appointment.createdAt,
@@ -58,6 +60,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
           professionalId: data.professionalId,
           serviceId: data.serviceId,
           scheduledAt: data.scheduledAt,
+          holdExpiresAt: data.holdExpiresAt,
           status: data.status as AppointmentStatus,
           price: data.price,
           createdAt: data.createdAt,
@@ -84,6 +87,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         professionalId: data.professionalId,
         serviceId: data.serviceId,
         scheduledAt: data.scheduledAt,
+        holdExpiresAt: data.holdExpiresAt,
         status: data.status as AppointmentStatus,
         price: data.price,
         createdAt: data.createdAt,
@@ -97,6 +101,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
       where: { id: appointment.id },
       data: {
         status: appointment.status,
+        holdExpiresAt: appointment.holdExpiresAt,
       },
     });
   }
@@ -109,7 +114,15 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
       where: {
         professionalId,
         scheduledAt,
-        status: 'SCHEDULED',
+        OR: [
+          { status: 'SCHEDULED' },
+          {
+            status: 'PAYMENT_PENDING',
+            holdExpiresAt: {
+              gt: new Date(),
+            },
+          },
+        ],
       },
     });
 
@@ -124,7 +137,15 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     const rows = await this.prisma.appointment.findMany({
       where: {
         professionalId,
-        status: 'SCHEDULED',
+        OR: [
+          { status: 'SCHEDULED' },
+          {
+            status: 'PAYMENT_PENDING',
+            holdExpiresAt: {
+              gt: new Date(),
+            },
+          },
+        ],
         scheduledAt: {
           gte: start,
           lt: end,
@@ -144,6 +165,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         professionalId: data.professionalId,
         serviceId: data.serviceId,
         scheduledAt: data.scheduledAt,
+        holdExpiresAt: data.holdExpiresAt,
         status: data.status as AppointmentStatus,
         price: data.price,
         createdAt: data.createdAt,

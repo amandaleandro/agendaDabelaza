@@ -1,106 +1,140 @@
-import { Controller, Post, Body, Headers, HttpStatus, Res } from '@nestjs/common';
+import { Body, Controller, Headers, HttpStatus, Post, Res } from '@nestjs/common';
 import { Response } from 'express';
-import { MercadoPagoGateway } from '../../payment-gateway/MercadoPagoGateway';
 import { PrismaService } from '../../database/prisma/PrismaService';
+import { MercadoPagoGateway } from '../../payment-gateway/MercadoPagoGateway';
+import { WhatsAppBaileysService } from '../../whatsapp/WhatsAppBaileysService';
 
-/**
- * Controller para receber webhooks do Mercado Pago
- * Processa notificações de mudança de status de pagamento
- */
 @Controller('webhooks/mercadopago')
 export class MercadoPagoWebhookController {
   constructor(
     private readonly mercadoPagoGateway: MercadoPagoGateway,
     private readonly prisma: PrismaService,
+    private readonly whatsAppBaileysService: WhatsAppBaileysService,
   ) {}
 
-  /**
-   * Endpoint que recebe notificações do Mercado Pago
-   * Documentação: https://www.mercadopago.com.br/developers/pt/docs/your-integrations/notifications/webhooks
-   */
   @Post()
   async handleWebhook(
     @Body() body: any,
-    @Headers('x-signature') signature: string,
+    @Headers('x-signature') _signature: string,
     @Headers('x-request-id') requestId: string,
     @Res() res: Response,
   ) {
     try {
-      console.log('📨 Webhook do Mercado Pago recebido:', {
+      console.log('Webhook do Mercado Pago recebido:', {
         type: body.type,
         action: body.action,
         data: body.data,
         requestId,
       });
 
-      // Verifica se é uma notificação de pagamento
-      if (body.type === 'payment') {
-        const paymentId = body.data?.id;
+      if (body.type !== 'payment') {
+        return res.status(HttpStatus.OK).json({ success: true });
+      }
 
-        if (!paymentId) {
-          return res.status(HttpStatus.BAD_REQUEST).json({
-            error: 'Payment ID not found in webhook data',
-          });
-        }
+      const mercadoPagoPaymentId = body.data?.id;
+      if (!mercadoPagoPaymentId) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          error: 'Payment ID not found in webhook data',
+        });
+      }
 
-        // Consulta o status atualizado do pagamento
-        const paymentStatus = await this.mercadoPagoGateway.getPaymentStatus(
-          paymentId.toString(),
-        );
+      const paymentStatus = await this.mercadoPagoGateway.getPaymentStatus(
+        mercadoPagoPaymentId.toString(),
+      );
 
-        if (!paymentStatus) {
-          return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-            error: 'Failed to get payment status',
-          });
-        }
+      if (!paymentStatus) {
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+          error: 'Failed to get payment status',
+        });
+      }
 
-        console.log('💳 Status do pagamento:', paymentStatus);
+      const payment = await this.prisma.payment.findFirst({
+        where: {
+          OR: [
+            { transactionId: mercadoPagoPaymentId.toString() },
+            paymentStatus.externalReference
+              ? { appointmentId: paymentStatus.externalReference }
+              : { appointmentId: '__no_appointment__' },
+          ],
+        },
+      });
 
-        // Atualiza o status do pagamento no banco de dados
-        // Busca pelo transactionId (que é o payment ID do Mercado Pago)
-        const payment = await this.prisma.payment.findFirst({
-          where: {
-            transactionId: paymentId.toString(),
+      if (!payment) {
+        console.warn('Pagamento nao encontrado no banco:', mercadoPagoPaymentId);
+        return res.status(HttpStatus.OK).json({ success: true });
+      }
+
+      let status = payment.status;
+      if (paymentStatus.status === 'approved') {
+        status = 'PAID';
+      } else if (
+        paymentStatus.status === 'rejected' ||
+        paymentStatus.status === 'cancelled'
+      ) {
+        status = 'FAILED';
+      } else if (paymentStatus.status === 'pending') {
+        status = 'PENDING';
+      }
+
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status,
+          transactionId: mercadoPagoPaymentId.toString(),
+          paidAt: status === 'PAID' ? new Date() : payment.paidAt,
+          updatedAt: new Date(),
+        },
+      });
+
+      if (status === 'PAID') {
+        const appointment = await this.prisma.appointment.update({
+          where: { id: payment.appointmentId },
+          data: {
+            status: 'SCHEDULED',
+            holdExpiresAt: null,
+          },
+          include: {
+            user: true,
+            professional: true,
+            service: true,
+            establishment: true,
           },
         });
 
-        if (payment) {
-          // Mapeia o status do Mercado Pago para o status interno
-          let status = payment.status;
-          
-          if (paymentStatus.status === 'approved') {
-            status = 'PAID';
-          } else if (paymentStatus.status === 'rejected') {
-            status = 'FAILED';
-          } else if (paymentStatus.status === 'cancelled') {
-            status = 'FAILED';
-          } else if (paymentStatus.status === 'pending') {
-            status = 'PENDING';
-          }
-
-          // Atualiza o pagamento
-          await this.prisma.payment.update({
-            where: { id: payment.id },
-            data: {
-              status,
-              updatedAt: new Date(),
-            },
-          });
-
-          console.log('✅ Pagamento atualizado:', {
-            paymentId: payment.id,
-            oldStatus: payment.status,
-            newStatus: status,
-          });
-        } else {
-          console.warn('⚠️  Pagamento não encontrado no banco:', paymentId);
+        if (appointment.user.phone) {
+          await this.whatsAppBaileysService.sendDirectMessage(
+            appointment.user.phone,
+            [
+              'Pagamento aprovado com sucesso.',
+              `Seu agendamento esta confirmado para ${appointment.establishment.name}.`,
+              `Servico: ${appointment.service.name}`,
+              `Profissional: ${appointment.professional.name}`,
+              `Quando: ${appointment.scheduledAt.toLocaleString('pt-BR', {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              })}`,
+              `Codigo: ${appointment.id}`,
+            ].join('\n'),
+          );
         }
       }
 
-      // Retorna 200 para confirmar recebimento do webhook
+      if (status === 'FAILED') {
+        await this.prisma.appointment.updateMany({
+          where: {
+            id: payment.appointmentId,
+            status: 'PAYMENT_PENDING',
+          },
+          data: {
+            status: 'CANCELLED',
+            holdExpiresAt: null,
+          },
+        });
+      }
+
       return res.status(HttpStatus.OK).json({ success: true });
-    } catch (error: any) {
-      console.error('❌ Erro ao processar webhook do Mercado Pago:', error);
+    } catch (error) {
+      console.error('Erro ao processar webhook do Mercado Pago:', error);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         error: 'Internal server error',
       });

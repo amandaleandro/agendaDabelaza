@@ -56,4 +56,21 @@ export class PrismaOwnerRepository implements OwnerRepository {
       data.createdAt,
     );
   }
+
+  async updateGoogleId(ownerId: string, googleId: string): Promise<Owner> {
+    const data = await this.prisma.owner.update({
+      where: { id: ownerId },
+      data: { googleId },
+    });
+
+    return new Owner(
+      data.id,
+      data.name,
+      data.email,
+      data.password,
+      data.googleId,
+      data.phone,
+      data.createdAt,
+    );
+  }
 }

@@ -9,6 +9,9 @@ interface CreateAppointmentPaymentLinkInput {
   appointmentId: string;
   payerEmail: string;
   establishmentMercadoPagoId?: string;
+  amountOverride?: number;
+  descriptionOverride?: string;
+  paymentType?: PaymentType;
 }
 
 interface CreateAppointmentPaymentLinkOutput {
@@ -49,30 +52,33 @@ export class CreateAppointmentPaymentLinkUseCase {
 
     // Criar link de pagamento com split payment automático
     const result = await this.paymentGateway.createPaymentLink({
-      amount: appointment.price,
-      description: `Agendamento #${appointment.id.substring(0, 8)}`,
+      amount: input.amountOverride ?? appointment.price,
+      description:
+        input.descriptionOverride ||
+        `Agendamento #${appointment.id.substring(0, 8)}`,
       payerEmail: input.payerEmail,
       externalReference: appointment.id,
       platformFeePercent: plan.platformFeePercent,
       establishmentMercadoPagoId: input.establishmentMercadoPagoId,
     });
 
-    const platformFee = (appointment.price * plan.platformFeePercent) / 100;
-    const establishmentAmount = appointment.price - platformFee;
+    const amount = input.amountOverride ?? appointment.price;
+    const platformFee = (amount * plan.platformFeePercent) / 100;
+    const establishmentAmount = amount - platformFee;
 
     // Persiste pagamento pendente com link/QR
     const payment = new Payment(
       randomUUID(),
       appointment.id,
-      appointment.price,
-      PaymentType.FULL,
+      amount,
+      input.paymentType || PaymentType.FULL,
       platformFee,
       establishmentAmount,
       null,
       null,
       PaymentStatus.PENDING,
       new Date(),
-      'PIX',
+      'CHECKOUT',
       result.paymentUrl || null,
       result.qrCode || null,
       result.qrCodeBase64 || null,
@@ -87,7 +93,7 @@ export class CreateAppointmentPaymentLinkUseCase {
       paymentUrl: result.paymentUrl,
       qrCode: result.qrCode,
       qrCodeBase64: result.qrCodeBase64,
-      amount: appointment.price,
+      amount,
       platformFeePercent: plan.platformFeePercent,
       platformFee,
       establishmentAmount,

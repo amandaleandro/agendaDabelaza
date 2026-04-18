@@ -27,6 +27,7 @@ export const useAuth = create<AuthState>((set) => ({
 
   setToken: (token: string) => {
     if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', token);
       localStorage.setItem('token', token);
     }
     set({ token });
@@ -34,6 +35,7 @@ export const useAuth = create<AuthState>((set) => ({
 
   setUser: (user: any) => {
     if (typeof window !== 'undefined' && user) {
+      localStorage.setItem('auth_user', JSON.stringify(user));
       localStorage.setItem('user', JSON.stringify(user));
     }
     set({ user });
@@ -42,8 +44,10 @@ export const useAuth = create<AuthState>((set) => ({
   setEstablishment: (est: Establishment | null) => {
     if (typeof window !== 'undefined') {
       if (est) {
+        localStorage.setItem('auth_establishment', JSON.stringify(est));
         localStorage.setItem('establishment', JSON.stringify(est));
       } else {
+        localStorage.removeItem('auth_establishment');
         localStorage.removeItem('establishment');
       }
     }
@@ -52,28 +56,40 @@ export const useAuth = create<AuthState>((set) => ({
 
   login: (token: string, user: any, establishment?: Establishment) => {
     if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', token);
       localStorage.setItem('token', token);
+      localStorage.setItem('auth_user', JSON.stringify(user));
       localStorage.setItem('user', JSON.stringify(user));
       if (establishment) {
+        localStorage.setItem('auth_establishment', JSON.stringify(establishment));
         localStorage.setItem('establishment', JSON.stringify(establishment));
+        localStorage.setItem('establishmentId', establishment.id);
+        localStorage.setItem('establishmentSlug', establishment.slug);
       }
+      localStorage.setItem('ownerId', user.id);
     }
     set({ token, user, establishment: establishment ?? null, isAuthenticated: true });
   },
 
   logout: () => {
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('token');
+      localStorage.removeItem('auth_user');
       localStorage.removeItem('user');
+      localStorage.removeItem('auth_establishment');
+      localStorage.removeItem('establishmentId');
+      localStorage.removeItem('establishmentSlug');
+      localStorage.removeItem('ownerId');
     }
     set({ token: null, user: null, establishment: null, isAuthenticated: false });
   },
 
   loadFromStorage: () => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
-      const estStr = localStorage.getItem('establishment');
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const userStr = localStorage.getItem('auth_user') || localStorage.getItem('user');
+      const estStr = localStorage.getItem('auth_establishment') || localStorage.getItem('establishment');
       
       let user = null;
       if (userStr && userStr !== 'undefined' && userStr !== 'null') {

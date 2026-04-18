@@ -3,6 +3,8 @@
 import { API_BASE_URL } from '@/config/api';
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Package, AlertCircle, Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/store/auth';
 
 interface ServiceOption {
   serviceId: string;
@@ -29,6 +31,8 @@ interface FormData {
 }
 
 export default function PlanosServicosPage() {
+  const router = useRouter();
+  const { establishment, isAuthenticated, loadFromStorage, setEstablishment } = useAuth();
   const [plans, setPlans] = useState<ServicePlan[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,21 +47,95 @@ export default function PlanosServicosPage() {
     services: [],
   });
   const [establishmentId, setEstablishmentId] = useState('');
+  const [authReady, setAuthReady] = useState(false);
   // Corrigir regra dos hooks: mover para o topo
   const [manualEstId, setManualEstId] = useState('');
 
+  const getAuthHeaders = (): HeadersInit => {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const getStoredEstablishmentId = () => {
+    if (typeof window === 'undefined') {
+      return '';
+    }
+
+    const storedId = localStorage.getItem('establishmentId');
+    if (storedId) {
+      return storedId;
+    }
+
+    const storedEstablishment =
+      localStorage.getItem('auth_establishment') || localStorage.getItem('establishment');
+    if (!storedEstablishment) {
+      return '';
+    }
+
+    try {
+      const parsed = JSON.parse(storedEstablishment);
+      return parsed?.id || '';
+    } catch {
+      return '';
+    }
+  };
+
   useEffect(() => {
-    // Buscar establishmentId automaticamente da API
+    loadFromStorage();
+    setAuthReady(true);
+  }, [loadFromStorage]);
+
+  useEffect(() => {
+    if (establishment?.id) {
+      setEstablishmentId(establishment.id);
+      setManualEstId(establishment.id);
+    }
+  }, [establishment]);
+
+  useEffect(() => {
+    if (!authReady || establishment?.id) {
+      return;
+    }
+
     const fetchEstablishment = async () => {
+      const storedEstablishmentId = getStoredEstablishmentId();
+      if (storedEstablishmentId) {
+        setEstablishmentId(storedEstablishmentId);
+        setManualEstId(storedEstablishmentId);
+      }
+
       setLoading(true);
       setError('');
       try {
-        const res = await fetch(`${API_BASE_URL}/establishments/me`, { credentials: 'include' });
+        const authHeaders = getAuthHeaders();
+        if (Object.keys(authHeaders).length === 0) {
+          if (storedEstablishmentId) {
+            return;
+          }
+
+          setError('Sessão não encontrada. Faça login novamente para carregar o estabelecimento.');
+          return;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/establishments/me`, {
+          headers: authHeaders,
+        });
         let apiError = '';
         if (res.ok) {
           const data = await res.json();
           if (data && data.id) {
             setEstablishmentId(data.id);
+            setManualEstId(data.id);
+            localStorage.setItem('establishmentId', data.id);
+            setEstablishment({
+              id: data.id,
+              name: data.name,
+              slug: data.slug,
+            });
           } else {
             apiError = `Estabelecimento não encontrado para o usuário logado. Resposta: ${JSON.stringify(data)}`;
           }
@@ -70,13 +148,22 @@ export default function PlanosServicosPage() {
         }
         if (apiError) setError(apiError);
       } catch (err) {
-        setError('Erro ao buscar estabelecimento: ' + (err instanceof Error ? err.message : String(err)));
+        if (storedEstablishmentId) {
+          return;
+        }
+
+        const message = err instanceof Error ? err.message : String(err);
+        setError(
+          message.includes('Failed to fetch')
+            ? 'Erro ao conectar com o servidor. Verifique se o backend está ativo na porta 3010.'
+            : 'Erro ao buscar estabelecimento: ' + message
+        );
       } finally {
         setLoading(false);
       }
     };
     fetchEstablishment();
-  }, []);
+  }, [authReady, establishment?.id, setEstablishment]);
 
   useEffect(() => {
     if (establishmentId) {
@@ -90,15 +177,23 @@ export default function PlanosServicosPage() {
 
     try {
       // Buscar serviços disponíveis
-      const servicesResponse = await fetch(`${API_BASE_URL}/services`);
+      const servicesResponse = await fetch(`${API_BASE_URL}/services`, {
+        headers: getAuthHeaders(),
+      });
       if (servicesResponse.ok) {
         const servicesData = await servicesResponse.json();
-        setServices(Array.isArray(servicesData) ? servicesData : []);
+        const filteredServices = Array.isArray(servicesData)
+          ? servicesData.filter((service) => service.establishmentId === establishmentId)
+          : [];
+        setServices(filteredServices);
       }
 
       // Buscar planos de serviços
       const plansResponse = await fetch(
-        `${API_BASE_URL}/service-plans/establishment/${establishmentId}`
+        `${API_BASE_URL}/service-plans/establishment/${establishmentId}`,
+        {
+          headers: getAuthHeaders(),
+        }
       );
       if (plansResponse.ok) {
         const plansData = await plansResponse.json();
@@ -180,14 +275,20 @@ export default function PlanosServicosPage() {
     try {
       const url = editingId
         ? `${API_BASE_URL}/service-plans/${editingId}`
-        : `${API_BASE_URL}/service-plans/establishment/${establishmentId}`;
+        : `${API_BASE_URL}/service-plans`;
 
       const method = editingId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          ...formData,
+          establishmentId,
+        }),
       });
 
       const data = await response.json();
@@ -230,7 +331,10 @@ export default function PlanosServicosPage() {
     try {
       const response = await fetch(
         `${API_BASE_URL}/service-plans/${planId}`,
-        { method: 'DELETE' }
+        {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        }
       );
 
       if (response.ok) {
@@ -265,38 +369,28 @@ export default function PlanosServicosPage() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-slate-900 to-slate-800 p-6">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <div className="text-red-400 text-lg mb-2">{error}</div>
-        <div className="w-full max-w-xs flex flex-col gap-2 mt-4">
-          <input
-            type="text"
-            placeholder="Cole o ID do estabelecimento"
-            value={manualEstId}
-            onChange={e => setManualEstId(e.target.value)}
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <button
-            onClick={() => {
-              if (manualEstId.trim()) {
-                localStorage.setItem('establishmentId', manualEstId.trim());
-                setError('');
-                setLoading(true);
-                setEstablishmentId(manualEstId.trim());
-              }
-            }}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors mt-2"
-          >
-            Salvar e Continuar
-          </button>
-        </div>
         <button
           onClick={() => {
             setError('');
             setLoading(true);
-            setEstablishmentId(localStorage.getItem('establishmentId') || '');
+            if (establishment?.id) {
+              setEstablishmentId(establishment.id);
+              return;
+            }
+            loadFromStorage();
           }}
           className="mt-4 bg-slate-600 hover:bg-slate-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
         >
           Tentar novamente
         </button>
+        {!isAuthenticated && (
+          <button
+            onClick={() => router.push('/admin/login')}
+            className="mt-3 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+          >
+            Ir para login
+          </button>
+        )}
       </div>
     );
   }

@@ -20,7 +20,7 @@ cp .env.example .env
 DATABASE_URL="postgresql://user:password@localhost:5432/agendei"
 JWT_SECRET="your-secret-key"
 STRIPE_SECRET_KEY="sk_test_..."
-API_PORT=3000
+API_PORT=3010
 ```
 
 ### 2. Install Dependencies
@@ -45,7 +45,7 @@ npx prisma db seed
 npm run start:dev
 ```
 
-The API will be available at: `http://localhost:3000/api`
+The API will be available at: `http://localhost:3010/api`
 
 ---
 

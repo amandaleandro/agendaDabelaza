@@ -41,7 +41,7 @@ interface Notification {
 export function AdminLayoutClient({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, loadFromStorage } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -94,6 +94,10 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
       console.error('Erro ao carregar notificações:', error);
     }
   };
+
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
 
   useEffect(() => {
     loadNotifications();

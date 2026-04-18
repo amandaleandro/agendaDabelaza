@@ -8,9 +8,10 @@ import { PrismaPaymentRepository } from '../core/infrastructure/database/reposit
 import { MercadoPagoGateway } from '../core/infrastructure/payment-gateway/MercadoPagoGateway';
 import { PaymentController } from '../core/infrastructure/http/controllers/PaymentController';
 import { MercadoPagoWebhookController } from '../core/infrastructure/http/controllers/MercadoPagoWebhookController';
+import { AppointmentModule } from './AppointmentModule';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, AppointmentModule],
   controllers: [PaymentController, MercadoPagoWebhookController],
   providers: [
     PrismaService,

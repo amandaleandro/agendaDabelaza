@@ -18,7 +18,11 @@ import {
   CreateProductRequest,
 } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const DEFAULT_BROWSER_API_URL = '/api';
+const DEFAULT_SERVER_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010/api';
+
+const API_URL =
+  typeof window !== 'undefined' ? DEFAULT_BROWSER_API_URL : DEFAULT_SERVER_API_URL;
 
 export class ApiClient {
   private client: AxiosInstance;
@@ -55,7 +59,7 @@ export class ApiClient {
    * @param data { email, password, establishmentSlug? }
    */
   async loginPublic(data: { email: string; password: string; establishmentSlug?: string }): Promise<any> {
-    const response = await this.client.post('/api/public/auth/login', data);
+    const response = await this.client.post('/public/auth/login', data);
     return response.data;
   }
 
@@ -63,8 +67,8 @@ export class ApiClient {
    * Login admin (owner)
    * @param data { email, password }
    */
-  async loginAdmin(data: { email: string; password: string }): Promise<any> {
-    const response = await this.client.post('/api/auth/login', data);
+  async loginAdmin(data: { email?: string; password?: string; googleToken?: string }): Promise<any> {
+    const response = await this.client.post('/auth/login', data);
     return response.data;
   }
 

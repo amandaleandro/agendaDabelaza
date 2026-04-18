@@ -17,7 +17,7 @@ export class LoginUseCase {
   ) {}
 
   async execute(input: LoginInput) {
-    const owner = await this.ownerRepository.findByEmail(input.email);
+    let owner = await this.ownerRepository.findByEmail(input.email);
 
     if (!owner) {
       throw new UnauthorizedException('Invalid credentials');
@@ -32,8 +32,11 @@ export class LoginUseCase {
         throw new UnauthorizedException('Invalid credentials');
       }
     } else if (input.googleId) {
-      if (owner.googleId !== input.googleId) {
+      if (owner.googleId && owner.googleId !== input.googleId) {
         throw new UnauthorizedException('Invalid credentials');
+      }
+      if (!owner.googleId) {
+        owner = await this.ownerRepository.updateGoogleId(owner.id, input.googleId);
       }
     } else {
       throw new UnauthorizedException('Invalid credentials');
