@@ -33,6 +33,20 @@ interface AvailablePlan {
   description: string;
 }
 
+async function readJsonSafely(response: Response) {
+  const raw = await response.text();
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 function MinhaContaContent() {
   const searchParams = useSearchParams();
   const urlSlug = searchParams.get('slug');
@@ -68,6 +82,14 @@ function MinhaContaContent() {
     }
   }, [resolvedSlug, slug]);
 
+  useEffect(() => {
+    if (!resolvedSlug || slug === resolvedSlug) {
+      return;
+    }
+
+    loadData();
+  }, [resolvedSlug]);
+
   const loadData = async () => {
     setLoading(true);
     setError('');
@@ -78,7 +100,7 @@ function MinhaContaContent() {
         `${API_BASE_URL}/client-subscriptions/email/${clientEmail}`
       );
       if (subsResponse.ok) {
-        const data = await subsResponse.json();
+        const data = await readJsonSafely(subsResponse);
         setSubscriptions(Array.isArray(data) ? data : []);
       }
 
@@ -87,17 +109,28 @@ function MinhaContaContent() {
         `${API_BASE_URL}/transactions/email/${clientEmail}`
       );
       if (transResponse.ok) {
-        const data = await transResponse.json();
+        const data = await readJsonSafely(transResponse);
         setTransactions(Array.isArray(data) ? data : []);
       }
 
       // Buscar planos disponíveis
-      const plansResponse = await fetch(
-        '${API_BASE_URL}/service-plans/public'
-      );
-      if (plansResponse.ok) {
-        const data = await plansResponse.json();
-        setAvailablePlans(Array.isArray(data) ? data : []);
+      if (slug || resolvedSlug) {
+        const plansResponse = await fetch(
+          `${API_BASE_URL}/public/service-plans/${slug || resolvedSlug}`
+        );
+        if (plansResponse.ok) {
+          const data = await readJsonSafely(plansResponse);
+          setAvailablePlans(
+            Array.isArray(data)
+              ? data.map((plan: any) => ({
+                  id: plan.id,
+                  name: plan.name,
+                  price: Number(plan.totalPrice ?? plan.price ?? 0),
+                  description: plan.description,
+                }))
+              : []
+          );
+        }
       }
     } catch (err: any) {
       console.error('Erro:', err);
@@ -127,16 +160,17 @@ function MinhaContaContent() {
         }
       );
 
-      const data = await response.json();
+      const data = await readJsonSafely(response);
+      const redirectUrl = data?.paymentUrl || data?.initPoint;
 
-      if (response.ok && data.paymentUrl) {
-        window.location.href = data.paymentUrl;
+      if (response.ok && redirectUrl) {
+        window.location.href = redirectUrl;
       } else if (response.ok) {
         setSuccess('Plano atualizado com sucesso!');
         setShowChangeModal(false);
         loadData();
       } else {
-        setError(data.message || 'Erro ao atualizar plano');
+        setError(data?.message || 'Erro ao atualizar plano');
       }
     } catch (err: any) {
       console.error('Erro:', err);
@@ -472,7 +506,7 @@ function MinhaContaContent() {
                 </button>
                 <button
                   onClick={handleUpgradePlan}
-                  disabled={processing}
+                  disabled={processing || !selectedPlan}
                   className="flex-1 text-white px-4 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 hover:brightness-110"
                   style={{ backgroundColor: primary }}
                 >

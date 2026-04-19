@@ -51,10 +51,13 @@ export default function AssinaturasClientesPage() {
   const loadData = async () => {
     setLoading(true);
     setError('');
+    const authToken = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
 
     try {
       // Buscar clientes
-      const clientsResponse = await fetch('${API_BASE_URL}/clients');
+      const clientsResponse = await fetch(`${API_BASE_URL}/clients`, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
       if (clientsResponse.ok) {
         const clientsData = await clientsResponse.json();
         setClients(Array.isArray(clientsData) ? clientsData : []);
@@ -62,7 +65,10 @@ export default function AssinaturasClientesPage() {
 
       // Buscar assinaturas de clientes
       const subsResponse = await fetch(
-        `${API_BASE_URL}/client-subscriptions/establishment/${establishmentId}`
+        `${API_BASE_URL}/client-subscriptions/establishment/${establishmentId}`,
+        {
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+        }
       );
       if (subsResponse.ok) {
         const subsData = await subsResponse.json();

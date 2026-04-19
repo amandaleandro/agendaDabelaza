@@ -23,15 +23,26 @@ export default function PagamentosPage() {
 
   const loadData = async () => {
     setLoadingData(true);
+    setError(null);
     try {
-      const [paymentsData, subscriptionsData] = await Promise.all([
+      const [paymentsResult, subscriptionsResult] = await Promise.allSettled([
         api.listPayments(),
         api.listSubscriptions(),
       ]);
-      setPayments(paymentsData);
-      setSubscriptions(subscriptionsData);
+
+      if (paymentsResult.status === 'fulfilled') {
+        setPayments(paymentsResult.value);
+      }
+
+      if (subscriptionsResult.status === 'fulfilled') {
+        setSubscriptions(subscriptionsResult.value);
+      } else {
+        setSubscriptions([]);
+        setError('Nao foi possivel carregar as assinaturas no momento.');
+      }
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
+      setError('Nao foi possivel carregar os dados de pagamentos.');
     } finally {
       setLoadingData(false);
     }

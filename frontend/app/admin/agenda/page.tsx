@@ -25,11 +25,11 @@ import {
 const api = new ApiClient();
 
 const MONTH_NAMES = [
-  'Janeiro', 'Fevereiro', 'MarÃ§o', 'Abril', 'Maio', 'Junho',
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
-const WEEKDAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b'];
+const WEEKDAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -242,7 +242,7 @@ export default function AgendaPage() {
         <div className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-400">Este MÃªs</p>
+              <p className="text-sm text-slate-400">Este Mês</p>
               <p className="mt-1 text-3xl font-bold text-white">{stats.thisMonth}</p>
             </div>
             <div className="rounded-lg bg-purple-500/10 p-3">
@@ -422,7 +422,7 @@ export default function AgendaPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-300">ServiÃ§o *</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-300">Serviço *</label>
                 <select
                   required
                   value={formData.serviceId}
@@ -449,13 +449,13 @@ export default function AgendaPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-300">ObservaÃ§Ãµes</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-300">Observações</label>
                 <textarea
                   value={formData.notes}
                   onChange={(event) => setFormData({ ...formData, notes: event.target.value })}
                   rows={3}
                   className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white focus:border-indigo-500 focus:outline-none"
-                  placeholder="ObservaÃ§Ãµes adicionais..."
+                  placeholder="Observações adicionais..."
                 />
               </div>
 

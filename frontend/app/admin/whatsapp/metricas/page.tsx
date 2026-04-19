@@ -13,6 +13,10 @@ import {
   XCircle,
 } from 'lucide-react';
 import { ApiClient } from '@/services/api';
+import {
+  formatSaoPauloDate,
+  getSaoPauloDateKey,
+} from '@/lib/saoPauloDateTime';
 
 const api = new ApiClient();
 
@@ -33,7 +37,7 @@ export default function WhatsAppMetricsPage() {
       const data = await api.getWhatsAppHistory();
       setHistory(data);
     } catch (error) {
-      console.error('Erro ao carregar métricas do WhatsApp:', error);
+      console.warn('Falha ao carregar metricas do WhatsApp.', error);
     } finally {
       setLoading(false);
       if (!silent) {
@@ -64,10 +68,7 @@ export default function WhatsAppMetricsPage() {
         return sendAt >= start;
       }
 
-      return (
-        sendAt.getMonth() === now.getMonth() &&
-        sendAt.getFullYear() === now.getFullYear()
-      );
+      return getSaoPauloDateKey(sendAt).slice(0, 7) === getSaoPauloDateKey(now).slice(0, 7);
     });
   }, [history, period]);
 
@@ -75,7 +76,7 @@ export default function WhatsAppMetricsPage() {
     const map = new Map<string, { date: string; confirmations: number; reschedules: number; autoCancelled: number }>();
 
     for (const item of filteredHistory) {
-      const key = new Date(item.sendAt).toISOString().split('T')[0];
+      const key = getSaoPauloDateKey(item.sendAt);
       const current = map.get(key) || {
         date: key,
         confirmations: 0,
@@ -227,7 +228,7 @@ export default function WhatsAppMetricsPage() {
             <div key={item.date} className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="font-semibold text-white">
-                  {new Date(`${item.date}T00:00:00`).toLocaleDateString('pt-BR')}
+                  {formatSaoPauloDate(`${item.date}T12:00:00`)}
                 </p>
                 <p className="text-xs text-slate-500">{item.date}</p>
               </div>

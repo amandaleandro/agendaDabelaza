@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
 import {
   Client,
   Professional,
@@ -27,6 +27,35 @@ const DEFAULT_SERVER_API_URL =
 const API_URL =
   typeof window !== 'undefined' ? DEFAULT_BROWSER_API_URL : DEFAULT_SERVER_API_URL;
 
+function getSafeBrowserFallbackApiUrl(currentBaseUrl?: string): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!configuredApiUrl) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(configuredApiUrl, window.location.origin);
+    const currentUrl = new URL(currentBaseUrl || DEFAULT_BROWSER_API_URL, window.location.origin);
+
+    // Avoid cross-origin retries in the browser. They often surface as "Network Error"
+    // even when the real issue is mixed-content or origin mismatch.
+    if (parsedUrl.origin !== window.location.origin) {
+      return null;
+    }
+
+    const normalizedFallback = `${parsedUrl.origin}${parsedUrl.pathname.replace(/\/$/, '')}`;
+    const normalizedCurrent = `${currentUrl.origin}${currentUrl.pathname.replace(/\/$/, '')}`;
+
+    return normalizedFallback === normalizedCurrent ? null : normalizedFallback;
+  } catch {
+    return null;
+  }
+}
+
 export class ApiClient {
   private client: AxiosInstance;
 
@@ -47,6 +76,47 @@ export class ApiClient {
       }
       return config;
     });
+
+    this.client.interceptors.response.use(
+      (response) => response,
+      async (error: AxiosError) => {
+        if (typeof window === 'undefined') {
+          throw error;
+        }
+
+        const config = error.config as (typeof error.config & {
+          __usedApiFallback?: boolean;
+        }) | undefined;
+
+        if (!config || config.__usedApiFallback) {
+          throw error;
+        }
+
+        const currentBaseUrl = config.baseURL || API_URL;
+        const fallbackBaseUrl =
+          currentBaseUrl === DEFAULT_BROWSER_API_URL
+            ? getSafeBrowserFallbackApiUrl(currentBaseUrl)
+            : DEFAULT_BROWSER_API_URL;
+
+        const shouldRetryWithFallback =
+          fallbackBaseUrl !== currentBaseUrl &&
+          Boolean(fallbackBaseUrl) &&
+          (!error.response || error.response.status >= 500);
+
+        if (!shouldRetryWithFallback) {
+          throw error;
+        }
+
+        const retryConfig = {
+          ...config,
+          baseURL: fallbackBaseUrl,
+        } as typeof config;
+
+        retryConfig.__usedApiFallback = true;
+
+        return this.client.request(retryConfig);
+      },
+    );
   }
 
   // ========== AUTH ==========

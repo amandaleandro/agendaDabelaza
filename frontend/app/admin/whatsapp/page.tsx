@@ -19,6 +19,10 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { ApiClient } from '@/services/api';
+import {
+  formatSaoPauloDateTime,
+  getSaoPauloDateKey,
+} from '@/lib/saoPauloDateTime';
 
 const api = new ApiClient();
 
@@ -31,6 +35,29 @@ type WhatsAppStatus = {
   lastQr: string | null;
   reminderWorkerRunning: boolean;
 };
+
+function formatConnectedWhatsAppNumber(jid: string | null): string {
+  if (!jid) {
+    return 'Nenhum numero conectado';
+  }
+
+  const baseJid = jid.split('@')[0] || '';
+  const phoneDigits = baseJid.split(':')[0]?.replace(/\D/g, '') || '';
+
+  if (!phoneDigits) {
+    return jid;
+  }
+
+  if (phoneDigits.length === 13 && phoneDigits.startsWith('55')) {
+    return `+${phoneDigits.slice(0, 2)} (${phoneDigits.slice(2, 4)}) ${phoneDigits.slice(4, 9)}-${phoneDigits.slice(9)}`;
+  }
+
+  if (phoneDigits.length === 12 && phoneDigits.startsWith('55')) {
+    return `+${phoneDigits.slice(0, 2)} (${phoneDigits.slice(2, 4)}) ${phoneDigits.slice(4, 8)}-${phoneDigits.slice(8)}`;
+  }
+
+  return `+${phoneDigits}`;
+}
 
 export default function AdminWhatsAppPage() {
   const [status, setStatus] = useState<WhatsAppStatus | null>(null);
@@ -59,6 +86,9 @@ export default function AdminWhatsAppPage() {
   );
   const [sendingTest, setSendingTest] = useState(false);
   const [testSuccess, setTestSuccess] = useState<string | null>(null);
+  const connectedPhoneLabel = formatConnectedWhatsAppNumber(
+    status?.connectedJid || null,
+  );
 
   const syncQrCode = useCallback(async (nextStatus: WhatsAppStatus | null) => {
     if (!nextStatus?.lastQr) {
@@ -112,20 +142,29 @@ export default function AdminWhatsAppPage() {
     [syncQrCode],
   );
 
-  const loadHistory = useCallback(async () => {
-    setHistoryLoading(true);
+  const loadHistory = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+
+    if (!silent) {
+      setHistoryLoading(true);
+    }
+
     try {
       const data = await api.getWhatsAppHistory();
       setHistory(data);
     } catch (historyError: any) {
-      console.error('Erro ao carregar historico do WhatsApp:', historyError);
-      setError(
-        historyError?.response?.data?.message ||
-          historyError?.message ||
-          'Nao foi possivel carregar o historico de lembretes.',
-      );
+      console.warn('Falha ao carregar historico do WhatsApp.', historyError);
+      if (!silent) {
+        setError(
+          historyError?.response?.data?.message ||
+            historyError?.message ||
+            'Nao foi possivel carregar o historico de lembretes.',
+        );
+      }
     } finally {
-      setHistoryLoading(false);
+      if (!silent) {
+        setHistoryLoading(false);
+      }
     }
   }, []);
 
@@ -137,7 +176,7 @@ export default function AdminWhatsAppPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       void loadStatus({ silent: true });
-      void loadHistory();
+      void loadHistory({ silent: true });
     }, 10000);
 
     return () => clearInterval(interval);
@@ -268,8 +307,7 @@ export default function AdminWhatsAppPage() {
         matchesPeriod = sendAt >= start;
       } else if (historyPeriodFilter === 'THIS_MONTH') {
         matchesPeriod =
-          sendAt.getMonth() === now.getMonth() &&
-          sendAt.getFullYear() === now.getFullYear();
+          getSaoPauloDateKey(sendAt).slice(0, 7) === getSaoPauloDateKey(now).slice(0, 7);
       }
 
       return matchesStatus && matchesType && matchesPeriod;
@@ -297,7 +335,7 @@ export default function AdminWhatsAppPage() {
       'Telefone',
       'Estabelecimento',
       'Profissional',
-      'Servico',
+      'Serviço',
       'Agendamento',
       'Envio',
       'EnviadoEm',
@@ -313,9 +351,9 @@ export default function AdminWhatsAppPage() {
       item.appointment.establishmentName,
       item.appointment.professionalName,
       item.appointment.serviceName,
-      new Date(item.appointment.scheduledAt).toLocaleString('pt-BR'),
-      new Date(item.sendAt).toLocaleString('pt-BR'),
-      item.sentAt ? new Date(item.sentAt).toLocaleString('pt-BR') : '',
+      formatSaoPauloDateTime(item.appointment.scheduledAt),
+      formatSaoPauloDateTime(item.sendAt),
+      item.sentAt ? formatSaoPauloDateTime(item.sentAt) : '',
       item.attempts ?? '',
       item.errorMessage || '',
     ]);
@@ -517,7 +555,7 @@ export default function AdminWhatsAppPage() {
             <MessageCircle className="h-5 w-5 text-indigo-400" />
           </div>
           <p className="break-all text-lg font-bold text-white">
-            {status?.connectedJid || 'Nenhum numero conectado'}
+            {connectedPhoneLabel}
           </p>
           <p className="mt-2 text-sm text-slate-500">
             O backend usa este WhatsApp para confirmacoes e lembretes.
@@ -812,13 +850,13 @@ export default function AdminWhatsAppPage() {
                   <td className="px-3 py-3">
                     <div>{item.appointment.serviceName}</div>
                     <div className="text-xs text-slate-500">
-                      {new Date(item.appointment.scheduledAt).toLocaleString('pt-BR')}
+                      {formatSaoPauloDateTime(item.appointment.scheduledAt)}
                     </div>
                   </td>
                   <td className="px-3 py-3">
-                    <div>{new Date(item.sendAt).toLocaleString('pt-BR')}</div>
+                    <div>{formatSaoPauloDateTime(item.sendAt)}</div>
                     <div className="text-xs text-slate-500">
-                      {item.sentAt ? `Enviado em ${new Date(item.sentAt).toLocaleString('pt-BR')}` : 'Ainda nao enviado'}
+                      {item.sentAt ? `Enviado em ${formatSaoPauloDateTime(item.sentAt)}` : 'Ainda nao enviado'}
                     </div>
                   </td>
                   <td className="px-3 py-3 text-xs text-slate-500">

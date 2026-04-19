@@ -19,7 +19,7 @@ export const API_BASE_URL =
 
 export const APP_URL =
   typeof window !== 'undefined'
-    ? process.env.NEXT_PUBLIC_APP_URL || DEFAULT_APP_URL
+    ? DEFAULT_APP_URL
     : process.env.NEXT_PUBLIC_APP_URL || DEFAULT_APP_URL;
 
 /**

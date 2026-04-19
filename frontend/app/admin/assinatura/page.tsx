@@ -71,7 +71,9 @@ function AssinaturaContent() {
   // Hidratar store caso já exista token salvo (não adicionar loadFromStorage às deps)
   useEffect(() => {
     try {
-      const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
+      const hasToken =
+        typeof window !== 'undefined' &&
+        !!(localStorage.getItem('auth_token') || localStorage.getItem('token'));
       if (hasToken) {
         loadFromStorage();
       }

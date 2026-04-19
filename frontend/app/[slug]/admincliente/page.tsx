@@ -49,7 +49,7 @@ export default function ClientLoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch('${API_BASE_URL}/public/auth/login', {
+      const res = await fetch(`${API_BASE_URL}/public/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, password: form.password, establishmentSlug: slug })

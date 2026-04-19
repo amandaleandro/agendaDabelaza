@@ -41,18 +41,18 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
   const navItems = [
     { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/landing', label: 'Landing Page', icon: Globe },
-    { href: '/admin/servicos', label: 'ServiÃ§os', icon: Scissors },
+    { href: '/admin/servicos', label: 'Serviços', icon: Scissors },
     { href: '/admin/planos-servicos', label: 'Planos', icon: Package },
     { href: '/admin/produtos', label: 'Produtos', icon: Package },
     { href: '/admin/profissionais', label: 'Profissionais', icon: Briefcase },
     { href: '/admin/clientes', label: 'Clientes', icon: User },
     { href: '/admin/assinatura', label: 'Meu Plano', icon: Crown },
-    { href: '/admin/assinatura-clientes', label: 'CrÃ©ditos Clientes', icon: Gift },
+    { href: '/admin/assinatura-clientes', label: 'Créditos Clientes', icon: Gift },
     { href: '/admin/pagamentos', label: 'Pagamentos', icon: CreditCard },
     { href: '/admin/agenda', label: 'Agenda', icon: Calendar },
     { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
-    { href: '/admin/relatorios', label: 'RelatÃ³rios', icon: BarChart3 },
-    { href: '/admin/configuracoes', label: 'ConfiguraÃ§Ãµes', icon: Settings },
+    { href: '/admin/relatorios', label: 'Relatórios', icon: BarChart3 },
+    { href: '/admin/configuracoes', label: 'Configurações', icon: Settings },
   ];
 
   return (

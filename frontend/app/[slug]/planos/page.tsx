@@ -95,7 +95,7 @@ export default function ComprarPlanosPage() {
     setError('');
     try {
       const plansResponse = await fetch(
-        `${API_BASE_URL}/service-plans/public/${estabSlug}`
+        `${API_BASE_URL}/public/service-plans/${estabSlug}`
       );
       if (plansResponse.ok) {
         const plansData = await plansResponse.json();

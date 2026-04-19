@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-scroll-behavior="smooth">
       {/* MUDANÇAS FEITAS:
         1. bg-gray-50 -> bg-[#0f172a]: Define a cor base escura para evitar "piscar" branco ao carregar.
         2. Removido Header e Footer antigos: O novo design da Home já tem eles integrados.

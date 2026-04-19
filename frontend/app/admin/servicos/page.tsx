@@ -1,24 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Scissors, 
-  Plus, 
-  Search, 
-  Clock, 
-  DollarSign, 
-  MoreVertical, 
-  Trash2, 
+import {
+  Scissors,
+  Plus,
+  Search,
+  Clock,
+  DollarSign,
+  MoreVertical,
+  Trash2,
   Edit,
-  User,
   Filter,
   Star,
   TrendingUp,
   Sparkles,
   Loader2,
   BarChart3,
-  X
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { ApiClient } from '@/services/api';
@@ -33,7 +32,7 @@ export default function ServicesPage() {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterProfessional, setFilterProfessional] = useState<string>('');
+  const [filterProfessional, setFilterProfessional] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'duration'>('name');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<CreateServiceRequest>({
@@ -42,34 +41,35 @@ export default function ServicesPage() {
     description: '',
     price: 0,
     durationMinutes: 30,
-    professionalId: ''
+    professionalId: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (establishment) {
-      setFormData(prev => ({ ...prev, establishmentId: establishment.id }));
+      setFormData((prev) => ({ ...prev, establishmentId: establishment.id }));
     }
   }, [establishment]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
   const fetchData = async () => {
     try {
       const [servicesData, professionalsData] = await Promise.all([
         api.listServices(),
-        api.listProfessionals()
+        api.listProfessionals(),
       ]);
+
       setServices(servicesData);
       setProfessionals(professionalsData);
-      
+
       if (professionalsData.length > 0) {
-        setFormData(prev => ({ 
-          ...prev, 
+        setFormData((prev) => ({
+          ...prev,
           professionalId: professionalsData[0].id,
-          establishmentId: establishment?.id || ''
+          establishmentId: establishment?.id || '',
         }));
       }
     } catch (error) {
@@ -79,40 +79,10 @@ export default function ServicesPage() {
     }
   };
 
-              {/* Alert - No Establishment */}
-              {!establishment && (
-                <div className="rounded-xl border border-red-800 bg-red-500/10 p-4">
-                  <p className="text-red-400 font-semibold">⚠️ Erro de Autenticação</p>
-                  <p className="text-red-300 text-sm mt-2">
-                    Nenhum estabelecimento foi associado à sua conta. Por favor, faça login novamente.
-                  </p>
-                  <button
-                    onClick={() => router.push('/login')}
-                    className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-semibold"
-                  >
-                    Ir para Login
-                  </button>
-                </div>
-              )}
-
-              {/* Alert - No Professionals */}
-              {establishment && professionals.length === 0 && (
-                <div className="rounded-xl border border-amber-800 bg-amber-500/10 p-4">
-                  <p className="text-amber-400 font-semibold">⚠️ Nenhum Profissional Cadastrado</p>
-                  <p className="text-amber-300 text-sm mt-2">
-                    Você precisa criar ao menos um profissional antes de adicionar serviços.
-                  </p>
-                  <button
-                    onClick={() => router.push('/admin/profissionais')}
-                    className="mt-3 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-semibold"
-                  >
-                    Ir para Profissionais
-                  </button>
-                </div>
-              )}
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setSubmitting(true);
+
     try {
       await api.createService(formData);
       await fetchData();
@@ -123,7 +93,7 @@ export default function ServicesPage() {
         description: '',
         price: 0,
         durationMinutes: 30,
-        professionalId: professionals.length > 0 ? professionals[0].id : ''
+        professionalId: professionals.length > 0 ? professionals[0].id : '',
       });
     } catch (error) {
       console.error('Erro ao criar serviço:', error);
@@ -133,17 +103,17 @@ export default function ServicesPage() {
     }
   };
 
-  const getProfessionalName = (id: string) => {
-    return professionals.find(p => p.id === id)?.name || 'Desconhecido';
-  };
+  const getProfessionalName = (id: string) =>
+    professionals.find((professional) => professional.id === id)?.name || 'Desconhecido';
 
   const filteredAndSortedServices = services
-    .filter(service => 
-      service.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (!filterProfessional || service.professionalId === filterProfessional)
+    .filter(
+      (service) =>
+        service.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        (!filterProfessional || service.professionalId === filterProfessional),
     )
     .sort((a, b) => {
-      switch(sortBy) {
+      switch (sortBy) {
         case 'price':
           return b.price - a.price;
         case 'duration':
@@ -153,47 +123,74 @@ export default function ServicesPage() {
       }
     });
 
-  // Calculate stats
   const stats = {
     total: services.length,
-    avgPrice: services.length > 0 ? services.reduce((sum, s) => sum + s.price, 0) / services.length : 0,
-    totalRevenue: services.reduce((sum, s) => sum + (s.price * Math.floor(Math.random() * 10)), 0),
+    avgPrice: services.length > 0 ? services.reduce((sum, service) => sum + service.price, 0) / services.length : 0,
+    totalRevenue: services.reduce((sum, service) => sum + service.price * Math.floor(Math.random() * 10), 0),
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-orange-500/10">
+        <h1 className="flex items-center gap-3 text-3xl font-bold text-white">
+          <div className="rounded-xl bg-orange-500/10 p-2">
             <Scissors className="h-8 w-8 text-orange-400" />
           </div>
           Serviços
         </h1>
-        <p className="text-slate-400 mt-2">Gerencie os serviços oferecidos no seu estabelecimento</p>
+        <p className="mt-2 text-slate-400">Gerencie os serviços oferecidos no seu estabelecimento</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {!establishment && (
+        <div className="rounded-xl border border-red-800 bg-red-500/10 p-4">
+          <p className="font-semibold text-red-400">Erro de Autenticação</p>
+          <p className="mt-2 text-sm text-red-300">
+            Nenhum estabelecimento foi associado à sua conta. Por favor, faça login novamente.
+          </p>
+          <button
+            onClick={() => router.push('/login')}
+            className="mt-3 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
+          >
+            Ir para Login
+          </button>
+        </div>
+      )}
+
+      {establishment && professionals.length === 0 && (
+        <div className="rounded-xl border border-amber-800 bg-amber-500/10 p-4">
+          <p className="font-semibold text-amber-400">Nenhum Profissional Cadastrado</p>
+          <p className="mt-2 text-sm text-amber-300">
+            Você precisa criar ao menos um profissional antes de adicionar serviços.
+          </p>
+          <button
+            onClick={() => router.push('/admin/profissionais')}
+            className="mt-3 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600"
+          >
+            Ir para Profissionais
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-400">Total de Serviços</p>
-              <p className="text-3xl font-bold text-white mt-1">{stats.total}</p>
+              <p className="mt-1 text-3xl font-bold text-white">{stats.total}</p>
             </div>
-            <div className="p-3 rounded-lg bg-orange-500/10">
+            <div className="rounded-lg bg-orange-500/10 p-3">
               <Scissors className="h-6 w-6 text-orange-400" />
             </div>
           </div>
         </div>
-        
+
         <div className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-400">Preço Médio</p>
-              <p className="text-3xl font-bold text-white mt-1">R$ {stats.avgPrice.toFixed(0)}</p>
+              <p className="mt-1 text-3xl font-bold text-white">R$ {stats.avgPrice.toFixed(0)}</p>
             </div>
-            <div className="p-3 rounded-lg bg-emerald-500/10">
+            <div className="rounded-lg bg-emerald-500/10 p-3">
               <DollarSign className="h-6 w-6 text-emerald-400" />
             </div>
           </div>
@@ -203,51 +200,49 @@ export default function ServicesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-400">Receita Estimada</p>
-              <p className="text-3xl font-bold text-white mt-1">R$ {stats.totalRevenue.toFixed(0)}</p>
+              <p className="mt-1 text-3xl font-bold text-white">R$ {stats.totalRevenue.toFixed(0)}</p>
             </div>
-            <div className="p-3 rounded-lg bg-indigo-500/10">
+            <div className="rounded-lg bg-indigo-500/10 p-3">
               <TrendingUp className="h-6 w-6 text-indigo-400" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col lg:flex-row gap-4">
-        {/* Search */}
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-          <input 
-            type="text" 
-            placeholder="Buscar serviço por nome..." 
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Buscar serviço por nome..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 transition-colors"
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="w-full rounded-xl border border-slate-700 bg-slate-900 py-3 pl-10 pr-4 text-white transition-colors focus:border-indigo-500 focus:outline-none"
           />
         </div>
 
-        {/* Filter by Professional */}
         <div className="relative min-w-[200px]">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          <Filter className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
           <select
             value={filterProfessional}
-            onChange={(e) => setFilterProfessional(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer"
+            onChange={(event) => setFilterProfessional(event.target.value)}
+            className="w-full cursor-pointer appearance-none rounded-xl border border-slate-700 bg-slate-900 py-3 pl-10 pr-4 text-white transition-colors focus:border-indigo-500 focus:outline-none"
           >
             <option value="">Todos profissionais</option>
-            {professionals.map(prof => (
-              <option key={prof.id} value={prof.id}>{prof.name}</option>
+            {professionals.map((professional) => (
+              <option key={professional.id} value={professional.id}>
+                {professional.name}
+              </option>
             ))}
           </select>
         </div>
 
-        {/* Sort */}
         <div className="relative min-w-[160px]">
-          <BarChart3 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          <BarChart3 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="w-full bg-slate-900 border border-slate-700 text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer"
+            onChange={(event) => setSortBy(event.target.value as 'name' | 'price' | 'duration')}
+            className="w-full cursor-pointer appearance-none rounded-xl border border-slate-700 bg-slate-900 py-3 pl-10 pr-4 text-white transition-colors focus:border-indigo-500 focus:outline-none"
           >
             <option value="name">Nome A-Z</option>
             <option value="price">Maior preço</option>
@@ -255,106 +250,107 @@ export default function ServicesPage() {
           </select>
         </div>
 
-        {/* Add Button */}
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
+          className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-3 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:from-indigo-500 hover:to-indigo-600 hover:shadow-indigo-500/30"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="h-5 w-5" />
           Novo Serviço
         </button>
       </div>
 
-      {/* Services Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mx-auto mb-4" />
+            <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-indigo-500" />
             <p className="text-slate-400">Carregando serviços...</p>
           </div>
         </div>
       ) : filteredAndSortedServices.length === 0 ? (
-        <div className="text-center py-20 rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40">
-          <div className="w-20 h-20 bg-orange-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Scissors className="w-10 h-10 text-orange-400" />
+        <div className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 py-20 text-center">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-orange-500/10">
+            <Scissors className="h-10 w-10 text-orange-400" />
           </div>
-          <h3 className="text-2xl font-bold text-white mb-2">Nenhum serviço encontrado</h3>
-          <p className="text-slate-400 max-w-md mx-auto mb-6">
-            {searchTerm ? 'Tente buscar com outros termos' : 'Cadastre os serviços que você oferece para começar a receber agendamentos.'}
+          <h3 className="mb-2 text-2xl font-bold text-white">Nenhum serviço encontrado</h3>
+          <p className="mx-auto mb-6 max-w-md text-slate-400">
+            {searchTerm
+              ? 'Tente buscar com outros termos'
+              : 'Cadastre os serviços que você oferece para começar a receber agendamentos.'}
           </p>
           {!searchTerm && (
-            <button 
+            <button
               onClick={() => setIsModalOpen(true)}
-              className="text-indigo-400 hover:text-indigo-300 font-semibold"
+              className="font-semibold text-indigo-400 hover:text-indigo-300"
             >
-              Adicionar primeiro serviço →
+              Adicionar primeiro serviço -&gt;
             </button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredAndSortedServices.map((service, index) => (
-            <div 
-              key={service.id} 
-              className="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6 hover:border-slate-700 hover:shadow-xl hover:shadow-orange-500/5 transition-all group"
+            <div
+              key={service.id}
+              className="group rounded-xl border border-slate-800 bg-gradient-to-br from-slate-800/40 to-slate-900/40 p-6 transition-all hover:border-slate-700 hover:shadow-xl hover:shadow-orange-500/5"
             >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="mb-4 flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
-                    <Scissors className="w-6 h-6 text-white" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/20">
+                    <Scissors className="h-6 w-6 text-white" />
                   </div>
                   {index < 3 && (
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20">
-                      <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                    <div className="flex items-center gap-1 rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2 py-1">
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                       <span className="text-xs font-semibold text-yellow-400">Top {index + 1}</span>
                     </div>
                   )}
                 </div>
-                <button className="text-slate-500 hover:text-white p-2 rounded-lg hover:bg-slate-800/50 transition-colors opacity-0 group-hover:opacity-100">
-                  <MoreVertical className="w-5 h-5" />
+                <button className="rounded-lg p-2 text-slate-500 opacity-0 transition-colors group-hover:opacity-100 hover:bg-slate-800/50 hover:text-white">
+                  <MoreVertical className="h-5 w-5" />
                 </button>
               </div>
-              
-              {/* Content */}
-              <h3 className="text-xl font-bold text-white mb-2">{service.name}</h3>
-              <p className="text-slate-400 text-sm mb-4 line-clamp-2 min-h-[40px]">{service.description}</p>
-              
-              {/* Meta Info */}
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50">
+
+              <h3 className="mb-2 text-xl font-bold text-white">{service.name}</h3>
+              <p className="mb-4 min-h-[40px] line-clamp-2 text-sm text-slate-400">{service.description}</p>
+
+              <div className="mb-4 space-y-3">
+                <div className="flex items-center justify-between rounded-lg bg-slate-800/50 p-3">
                   <div className="flex items-center gap-2 text-slate-400">
-                    <Clock className="w-4 h-4" />
+                    <Clock className="h-4 w-4" />
                     <span className="text-sm">Duração</span>
                   </div>
                   <span className="text-sm font-semibold text-white">{service.durationMinutes} min</span>
                 </div>
-                
-                <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+
+                <div className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3">
                   <div className="flex items-center gap-2 text-emerald-400">
-                    <DollarSign className="w-4 h-4" />
+                    <DollarSign className="h-4 w-4" />
                     <span className="text-sm font-semibold">Preço</span>
                   </div>
                   <span className="text-lg font-bold text-emerald-400">R$ {service.price.toFixed(2)}</span>
                 </div>
               </div>
 
-              {/* Professional */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/30 border border-slate-700/50 mb-4">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white">
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-slate-700/50 bg-slate-800/30 px-3 py-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-xs font-bold text-white">
                   {getProfessionalName(service.professionalId).slice(0, 1)}
                 </div>
                 <span className="text-sm text-slate-400">{getProfessionalName(service.professionalId)}</span>
               </div>
 
-              {/* Actions */}
-              <div className="pt-4 border-t border-slate-800 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="flex-1 p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 rounded-lg transition-colors flex items-center justify-center gap-2" title="Editar">
-                  <Edit className="w-4 h-4" />
+              <div className="flex justify-end gap-2 border-t border-slate-800 pt-4 opacity-0 transition-opacity group-hover:opacity-100">
+                <button
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg p-2 text-indigo-400 transition-colors hover:bg-indigo-400/10 hover:text-indigo-300"
+                  title="Editar"
+                >
+                  <Edit className="h-4 w-4" />
                   <span className="text-sm font-medium">Editar</span>
                 </button>
-                <button className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors" title="Excluir">
-                  <Trash2 className="w-4 h-4" />
+                <button
+                  className="rounded-lg p-2 text-red-400 transition-colors hover:bg-red-400/10 hover:text-red-300"
+                  title="Excluir"
+                >
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -362,133 +358,121 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-slate-800 to-slate-900 p-6 border-b border-slate-700 flex items-center justify-between">
+        <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm duration-200">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-800 to-slate-900 shadow-2xl">
+            <div className="sticky top-0 flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-900 p-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/10">
+                <div className="rounded-lg bg-orange-500/10 p-2">
                   <Sparkles className="h-6 w-6 text-orange-400" />
                 </div>
                 <h2 className="text-xl font-bold text-white">Novo Serviço</h2>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white"
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
-            {/* Modal Body */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Safety checks */}
+
+            <form onSubmit={handleSubmit} className="space-y-4 p-6">
               {(!establishment || professionals.length === 0) && (
                 <div className="rounded-xl border border-amber-800 bg-amber-500/10 p-4">
                   {!establishment && (
-                    <p className="text-amber-300 text-sm">
-                      ⚠️ Você não está associado a um estabelecimento. Faça login novamente para continuar.
+                    <p className="text-sm text-amber-300">
+                      Você não está associado a um estabelecimento. Faça login novamente para continuar.
                     </p>
                   )}
                   {establishment && professionals.length === 0 && (
-                    <p className="text-amber-300 text-sm">
-                      ⚠️ Nenhum profissional cadastrado. Crie um profissional antes de adicionar serviços.
+                    <p className="text-sm text-amber-300">
+                      Nenhum profissional cadastrado. Crie um profissional antes de adicionar serviços.
                     </p>
                   )}
                 </div>
               )}
+
               <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
-                  Nome do Serviço *
-                </label>
-                <input 
-                  type="text" 
+                <label className="mb-2 block text-sm font-semibold text-slate-300">Nome do Serviço *</label>
+                <input
+                  type="text"
                   required
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(event) => setFormData({ ...formData, name: event.target.value })}
                   placeholder="Ex: Corte de Cabelo Masculino"
-                  className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white transition-colors focus:border-indigo-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
-                  Descrição
-                </label>
-                <textarea 
+                <label className="mb-2 block text-sm font-semibold text-slate-300">Descrição</label>
+                <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  onChange={(event) => setFormData({ ...formData, description: event.target.value })}
                   placeholder="Descreva o serviço oferecido..."
                   rows={3}
-                  className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                  className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white transition-colors focus:border-indigo-500 focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">
-                    Preço (R$) *
-                  </label>
-                  <input 
-                    type="number" 
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">Preço (R$) *</label>
+                  <input
+                    type="number"
                     required
                     min="0"
                     step="0.01"
                     value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value)})}
+                    onChange={(event) => setFormData({ ...formData, price: parseFloat(event.target.value) })}
                     placeholder="0.00"
-                    className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white transition-colors focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">
-                    Duração (min) *
-                  </label>
-                  <input 
-                    type="number" 
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">Duração (min) *</label>
+                  <input
+                    type="number"
                     required
                     min="5"
                     step="5"
                     value={formData.durationMinutes}
-                    onChange={(e) => setFormData({...formData, durationMinutes: parseInt(e.target.value)})}
+                    onChange={(event) => setFormData({ ...formData, durationMinutes: parseInt(event.target.value, 10) })}
                     placeholder="30"
-                    className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white transition-colors focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
-                  Profissional *
-                </label>
-                <select 
+                <label className="mb-2 block text-sm font-semibold text-slate-300">Profissional *</label>
+                <select
                   required
                   value={formData.professionalId}
-                  onChange={(e) => setFormData({...formData, professionalId: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 transition-colors appearance-none cursor-pointer"
+                  onChange={(event) => setFormData({ ...formData, professionalId: event.target.value })}
+                  className="w-full cursor-pointer appearance-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white transition-colors focus:border-indigo-500 focus:outline-none"
                 >
-                  {professionals.map(prof => (
-                    <option key={prof.id} value={prof.id}>{prof.name}</option>
+                  {professionals.map((professional) => (
+                    <option key={professional.id} value={professional.id}>
+                      {professional.name}
+                    </option>
                   ))}
                 </select>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition-colors"
+                  className="flex-1 rounded-xl bg-slate-800 px-4 py-3 font-semibold text-white transition-colors hover:bg-slate-700"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || !establishment || professionals.length === 0}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
+                  className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all disabled:cursor-not-allowed disabled:opacity-50 hover:from-indigo-500 hover:to-indigo-600"
                 >
                   {submitting ? 'Criando...' : 'Criar Serviço'}
                 </button>

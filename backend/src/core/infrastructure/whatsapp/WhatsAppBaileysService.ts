@@ -18,6 +18,18 @@ import {
   WhatsAppAiIntent,
   WhatsAppAiService,
 } from './WhatsAppAiService';
+import {
+  addDaysToDateKey,
+  getDayOfWeekFromDateKey,
+  getSaoPauloDayBounds,
+  getSaoPauloDayBoundsFromDateKey,
+  getSaoPauloDateKey,
+  getSaoPauloDayOfWeek,
+  getSaoPauloMinutes,
+  getSaoPauloTodayDateKey,
+  parseSaoPauloDateTime,
+  getSaoPauloTimeZoneParts,
+} from '../../shared/datetime/saoPaulo';
 
 type ConversationSession = {
   establishmentSlug?: string;
@@ -378,41 +390,52 @@ export class WhatsAppBaileysService
   }
 
   async listReminderHistory() {
-    const reminders = await this.prisma.whatsAppReminder.findMany({
-      include: {
-        appointment: {
-          include: {
-            user: true,
-            establishment: true,
-            professional: true,
-            service: true,
+    try {
+      const reminders = await this.prisma.whatsAppReminder.findMany({
+        include: {
+          appointment: {
+            include: {
+              user: true,
+              establishment: true,
+              professional: true,
+              service: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      });
 
-    return reminders.map((reminder) => ({
-      id: reminder.id,
-      type: reminder.type,
-      status: reminder.status,
-      recipientPhone: reminder.recipientPhone,
-      sendAt: reminder.sendAt,
-      sentAt: reminder.sentAt,
-      attempts: reminder.attempts,
-      errorMessage: reminder.errorMessage,
-      createdAt: reminder.createdAt,
-      appointment: {
-        id: reminder.appointment.id,
-        scheduledAt: reminder.appointment.scheduledAt,
-        status: reminder.appointment.status,
-        clientName: reminder.appointment.user.name,
-        establishmentName: reminder.appointment.establishment.name,
-        professionalName: reminder.appointment.professional.name,
-        serviceName: reminder.appointment.service.name,
-      },
-    }));
+      return reminders.map((reminder) => ({
+        id: reminder.id,
+        type: reminder.type,
+        status: reminder.status,
+        recipientPhone: reminder.recipientPhone,
+        sendAt: reminder.sendAt,
+        sentAt: reminder.sentAt,
+        attempts: reminder.attempts,
+        errorMessage: reminder.errorMessage,
+        createdAt: reminder.createdAt,
+        appointment: {
+          id: reminder.appointment?.id || reminder.appointmentId,
+          scheduledAt: reminder.appointment?.scheduledAt || null,
+          status: reminder.appointment?.status || 'UNKNOWN',
+          clientName: reminder.appointment?.user?.name || 'Cliente removido',
+          establishmentName:
+            reminder.appointment?.establishment?.name ||
+            'Estabelecimento removido',
+          professionalName:
+            reminder.appointment?.professional?.name ||
+            'Profissional removido',
+          serviceName: reminder.appointment?.service?.name || 'Servico removido',
+        },
+      }));
+    } catch (error) {
+      this.logger.error(
+        `Failed to load WhatsApp reminder history: ${this.stringifyError(error)}`,
+      );
+      return [];
+    }
   }
 
   private async initializeConnection(forceReconnect = false): Promise<void> {
@@ -1262,8 +1285,9 @@ export class WhatsAppBaileysService
     session.serviceName = service.name;
     session.professionalId = professional.id;
     session.professionalName = professional.name;
-    session.date = scheduledAt.toISOString().split('T')[0];
-    session.time = `${String(scheduledAt.getHours()).padStart(2, '0')}:${String(scheduledAt.getMinutes()).padStart(2, '0')}`;
+    const scheduledAtParts = getSaoPauloTimeZoneParts(scheduledAt);
+    session.date = getSaoPauloDateKey(scheduledAt);
+    session.time = `${String(scheduledAtParts.hour).padStart(2, '0')}:${String(scheduledAtParts.minute).padStart(2, '0')}`;
 
     if (requiresDeposit) {
       try {
@@ -1422,8 +1446,9 @@ export class WhatsAppBaileysService
     session.serviceName = latest.service.name;
     session.professionalId = latest.professionalId;
     session.professionalName = latest.professional.name;
-    session.date = latest.scheduledAt.toISOString().split('T')[0];
-    session.time = `${String(latest.scheduledAt.getHours()).padStart(2, '0')}:${String(latest.scheduledAt.getMinutes()).padStart(2, '0')}`;
+    const latestScheduledAtParts = getSaoPauloTimeZoneParts(latest.scheduledAt);
+    session.date = getSaoPauloDateKey(latest.scheduledAt);
+    session.time = `${String(latestScheduledAtParts.hour).padStart(2, '0')}:${String(latestScheduledAtParts.minute).padStart(2, '0')}`;
 
     await this.sendTextMessage(senderPhone, lines.join('\n'));
   }
@@ -1567,8 +1592,9 @@ export class WhatsAppBaileysService
 
     const session = this.getSession(senderPhone);
     session.appointmentCode = appointment.id;
-    session.date = newScheduledAt.toISOString().split('T')[0];
-    session.time = `${String(newScheduledAt.getHours()).padStart(2, '0')}:${String(newScheduledAt.getMinutes()).padStart(2, '0')}`;
+    const newScheduledAtParts = getSaoPauloTimeZoneParts(newScheduledAt);
+    session.date = getSaoPauloDateKey(newScheduledAt);
+    session.time = `${String(newScheduledAtParts.hour).padStart(2, '0')}:${String(newScheduledAtParts.minute).padStart(2, '0')}`;
     session.pendingAction = undefined;
   }
 
@@ -1586,7 +1612,7 @@ export class WhatsAppBaileysService
       'THURSDAY',
       'FRIDAY',
       'SATURDAY',
-    ][scheduledAt.getDay()];
+    ][getSaoPauloDayOfWeek(scheduledAt)];
     const scheduledEnd = new Date(
       scheduledAt.getTime() + durationMinutes * 60 * 1000,
     );
@@ -1608,10 +1634,8 @@ export class WhatsAppBaileysService
       const [endHour, endMinute] = schedule.endTime.split(':').map(Number);
       const scheduleStart = startHour * 60 + startMinute;
       const scheduleEnd = endHour * 60 + endMinute;
-      const appointmentStart =
-        scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
-      const appointmentEnd =
-        scheduledEnd.getHours() * 60 + scheduledEnd.getMinutes();
+      const appointmentStart = getSaoPauloMinutes(scheduledAt);
+      const appointmentEnd = getSaoPauloMinutes(scheduledEnd);
 
       return appointmentStart >= scheduleStart && appointmentEnd <= scheduleEnd;
     });
@@ -1620,10 +1644,7 @@ export class WhatsAppBaileysService
       throw new Error('Appointment outside professional schedule');
     }
 
-    const dayStart = new Date(scheduledAt);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(scheduledAt);
-    dayEnd.setHours(23, 59, 59, 999);
+    const { start: dayStart, end: dayEnd } = getSaoPauloDayBounds(scheduledAt);
 
     const existingAppointments = await this.prisma.appointment.findMany({
       where: {
@@ -1989,21 +2010,19 @@ export class WhatsAppBaileysService
       return [];
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayDateKey = getSaoPauloTodayDateKey();
     const availableDates: string[] = [];
 
     for (let i = 0; i < 14; i += 1) {
-      const checkDate = new Date(today);
-      checkDate.setDate(today.getDate() + i);
+      const checkDate = addDaysToDateKey(todayDateKey, i);
       const slots = await this.getAvailableSlotsForService(
         establishment.slug,
-        checkDate.toISOString().split('T')[0],
+        checkDate,
         service.id,
         professionalId,
       );
       if (slots.length) {
-        availableDates.push(checkDate.toISOString().split('T')[0]);
+        availableDates.push(checkDate);
       }
       if (availableDates.length >= 5) {
         break;
@@ -2034,11 +2053,6 @@ export class WhatsAppBaileysService
       return [];
     }
 
-    const targetDate = new Date(`${date}T00:00:00`);
-    if (Number.isNaN(targetDate.getTime())) {
-      return [];
-    }
-
     const dayOfWeek = [
       'SUNDAY',
       'MONDAY',
@@ -2047,7 +2061,7 @@ export class WhatsAppBaileysService
       'THURSDAY',
       'FRIDAY',
       'SATURDAY',
-    ][targetDate.getDay()];
+    ][getDayOfWeekFromDateKey(date)];
 
     const schedules = await this.prisma.schedule.findMany({
       where: {
@@ -2062,10 +2076,7 @@ export class WhatsAppBaileysService
       return [];
     }
 
-    const dayStart = new Date(targetDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(targetDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    const { start: dayStart, end: dayEnd } = getSaoPauloDayBoundsFromDateKey(date);
 
     const existingAppointments = await this.prisma.appointment.findMany({
       where: {
@@ -2103,8 +2114,10 @@ export class WhatsAppBaileysService
         minute + service.durationMinutes <= endMinutes;
         minute += 15
       ) {
-        const slotStart = new Date(targetDate);
-        slotStart.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
+        const slotStart = parseSaoPauloDateTime(
+          date,
+          `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`,
+        );
         const slotEnd = new Date(
           slotStart.getTime() + service.durationMinutes * 60 * 1000,
         );
@@ -2122,8 +2135,9 @@ export class WhatsAppBaileysService
         });
 
         if (!conflict) {
+          const slotParts = getSaoPauloTimeZoneParts(slotStart);
           slots.push(
-            `${String(slotStart.getHours()).padStart(2, '0')}:${String(slotStart.getMinutes()).padStart(2, '0')}`,
+            `${String(slotParts.hour).padStart(2, '0')}:${String(slotParts.minute).padStart(2, '0')}`,
           );
         }
       }

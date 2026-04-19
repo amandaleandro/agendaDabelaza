@@ -126,11 +126,11 @@ export default function AdminDashboard() {
 
       const [dashboardStats, revenueData] = await Promise.all([
         api.getDashboardStats().catch((err) => {
-          console.error('Erro ao carregar stats:', err);
+          console.warn('Falha ao carregar dashboard otimizado; usando fallback legado.', err);
           return null;
         }),
         api.getDashboardRevenueByDay(7).catch((err) => {
-          console.error('Erro ao carregar receita:', err);
+          console.warn('Falha ao carregar serie de receita do dashboard.', err);
           return [];
         }),
       ]);

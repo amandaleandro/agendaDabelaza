@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
+import {
   BarChart3, 
   TrendingUp, 
   TrendingDown,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { ApiClient } from '@/services/api';
 import { Payment, Appointment, Service, Professional } from '@/types';
+import { SAO_PAULO_TIME_ZONE } from '@/lib/saoPauloDateTime';
 
 const api = new ApiClient();
 
@@ -58,6 +59,34 @@ export default function RelatoriosPage() {
     }
   };
 
+  const isInSaoPauloRange = (value: string, start: Date, end: Date) => {
+    const date = new Date(value);
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: SAO_PAULO_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(date).reduce<Record<string, string>>((acc, part) => {
+      if (part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
+
+    const comparable = new Date(
+      Number(parts.year),
+      Number(parts.month) - 1,
+      Number(parts.day),
+      Number(parts.hour),
+      Number(parts.minute),
+      Number(parts.second),
+    );
+
+    return comparable >= start && comparable <= end;
+  };
+
   const getPeriodDates = () => {
     const now = new Date();
     let start = new Date();
@@ -82,8 +111,7 @@ export default function RelatoriosPage() {
 
   const filterByPeriod = (date: string) => {
     const { start, end } = getPeriodDates();
-    const d = new Date(date);
-    return d >= start && d <= end;
+    return isInSaoPauloRange(date, start, end);
   };
 
   const getPreviousPeriod = () => {
@@ -106,13 +134,11 @@ export default function RelatoriosPage() {
   // Previous period calculations
   const prevPeriod = getPreviousPeriod();
   const prevPayments = payments.filter(p => {
-    const d = new Date(p.createdAt);
-    return p.status === 'PAID' && d >= prevPeriod.start && d <= prevPeriod.end;
+    return p.status === 'PAID' && isInSaoPauloRange(p.createdAt, prevPeriod.start, prevPeriod.end);
   });
   const prevRevenue = prevPayments.reduce((sum, p) => sum + p.amount, 0);
   const prevAppointments = appointments.filter(apt => {
-    const d = new Date(apt.createdAt);
-    return d >= prevPeriod.start && d <= prevPeriod.end;
+    return isInSaoPauloRange(apt.createdAt, prevPeriod.start, prevPeriod.end);
   });
 
   // Calculate growth

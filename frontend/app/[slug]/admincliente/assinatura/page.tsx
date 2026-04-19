@@ -44,7 +44,7 @@ export default function AssinaturaPage() {
       try {
         const res = await fetch(`${API_BASE_URL}/client-subscriptions/establishment/${params.slug}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token') || ''}`,
           },
         });
         if (res.ok) {
@@ -69,7 +69,7 @@ export default function AssinaturaPage() {
       const res = await fetch(`${API_BASE_URL}/client-subscriptions/${subscriptionId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token') || ''}`,
         },
       });
       
