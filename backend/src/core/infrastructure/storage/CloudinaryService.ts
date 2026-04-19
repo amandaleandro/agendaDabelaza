@@ -3,6 +3,26 @@ import { v2 as cloudinary } from 'cloudinary';
 
 @Injectable()
 export class CloudinaryService {
+  private sanitizeFolderSegment(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  buildEstablishmentFolder(
+    establishment: { id: string; slug?: string | null },
+    category: string,
+  ): string {
+    const slug = this.sanitizeFolderSegment(establishment.slug || establishment.id);
+    const suffix = this.sanitizeFolderSegment(establishment.id).slice(-8);
+    const folderName = suffix ? `${slug}-${suffix}` : slug;
+    return `agendei/establishments/${folderName}/${this.sanitizeFolderSegment(category)}`;
+  }
+
   constructor() {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

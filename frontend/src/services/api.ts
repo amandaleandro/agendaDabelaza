@@ -19,7 +19,10 @@ import {
 } from '@/types';
 
 const DEFAULT_BROWSER_API_URL = '/api';
-const DEFAULT_SERVER_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010/api';
+const DEFAULT_SERVER_API_URL =
+  process.env.INTERNAL_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'http://localhost:3010/api';
 
 const API_URL =
   typeof window !== 'undefined' ? DEFAULT_BROWSER_API_URL : DEFAULT_SERVER_API_URL;
@@ -439,37 +442,85 @@ export class ApiClient {
     return response.data;
   }
 
+  // ========== WHATSAPP ==========
+
+  async getWhatsAppStatus(): Promise<any> {
+    const response = await this.client.get('/whatsapp/status');
+    return response.data;
+  }
+
+  async connectWhatsApp(): Promise<any> {
+    const response = await this.client.post('/whatsapp/connect');
+    return response.data;
+  }
+
+  async disconnectWhatsApp(): Promise<any> {
+    const response = await this.client.post('/whatsapp/disconnect');
+    return response.data;
+  }
+
+  async processWhatsAppReminders(): Promise<{ processed: number }> {
+    const response = await this.client.post('/whatsapp/process-reminders');
+    return response.data;
+  }
+
+  async syncWhatsAppReminders(
+    scope: 'DAY' | 'WEEK' | 'MONTH' | 'ALL',
+  ): Promise<{ scanned: number; created: number; scope: string }> {
+    const response = await this.client.post('/whatsapp/sync-reminders', {
+      scope,
+    });
+    return response.data;
+  }
+
+  async getWhatsAppHistory(): Promise<any[]> {
+    const response = await this.client.get('/whatsapp/history');
+    return response.data;
+  }
+
+  async sendWhatsAppTestMessage(data: {
+    phone: string;
+    message?: string;
+  }): Promise<{ success: boolean }> {
+    const response = await this.client.post('/whatsapp/test-message', data);
+    return response.data;
+  }
+
   // ========== UPLOADS ==========
 
-  async uploadImage(file: File): Promise<{ url: string; publicId: string }> {
+  async uploadImage(file: File, establishmentId: string): Promise<{ url: string; publicId: string }> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('establishmentId', establishmentId);
     const response = await this.client.post('/uploads/image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   }
 
-  async uploadLogo(file: File): Promise<{ url: string; publicId: string }> {
+  async uploadLogo(file: File, establishmentId: string): Promise<{ url: string; publicId: string }> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('establishmentId', establishmentId);
     const response = await this.client.post('/uploads/logo', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   }
 
-  async uploadBanner(file: File): Promise<{ url: string; publicId: string }> {
+  async uploadBanner(file: File, establishmentId: string): Promise<{ url: string; publicId: string }> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('establishmentId', establishmentId);
     const response = await this.client.post('/uploads/banner', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   }
 
-  async uploadGallery(files: File[]): Promise<Array<{ url: string; publicId: string }>> {
+  async uploadGallery(files: File[], establishmentId: string): Promise<Array<{ url: string; publicId: string }>> {
     const formData = new FormData();
+    formData.append('establishmentId', establishmentId);
     files.forEach((file) => formData.append('files', file));
     const response = await this.client.post('/uploads/gallery', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

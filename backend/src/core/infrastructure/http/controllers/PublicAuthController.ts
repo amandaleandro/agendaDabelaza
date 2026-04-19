@@ -46,7 +46,10 @@ export class PublicAuthController {
 
     let establishment = null as any;
     if (establishmentSlug) {
-      establishment = await this.prisma.establishment.findUnique({ where: { slug: establishmentSlug } });
+      establishment = await this.prisma.establishment.findUnique({
+        where: { slug: establishmentSlug },
+        select: { id: true, name: true, slug: true },
+      });
       if (!establishment) {
         throw new NotFoundException('Estabelecimento não encontrado');
       }
@@ -117,7 +120,8 @@ export class PublicAuthController {
 
     // Verificar se estabelecimento existe
     const establishment = await this.prisma.establishment.findUnique({ 
-      where: { slug: establishmentSlug } 
+      where: { slug: establishmentSlug },
+      select: { id: true, name: true, slug: true },
     });
     if (!establishment) {
       throw new NotFoundException('Estabelecimento não encontrado');

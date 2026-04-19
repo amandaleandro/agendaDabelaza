@@ -11,7 +11,12 @@ export interface AppointmentNotificationData {
   durationMinutes: number;
 }
 
-export type AppointmentReminderType = 'REMINDER_24H' | 'REMINDER_2H';
+export type AppointmentReminderType =
+  | 'REMINDER_30D'
+  | 'REMINDER_7D'
+  | 'CONFIRMATION_24H'
+  | 'REMINDER_24H'
+  | 'REMINDER_2H';
 
 export interface NotificationGateway {
   sendAppointmentConfirmationEmail(
@@ -22,5 +27,5 @@ export interface NotificationGateway {
   ): Promise<void>;
   scheduleAppointmentReminders?(
     data: AppointmentNotificationData,
-  ): Promise<void>;
+  ): Promise<void | number>;
 }

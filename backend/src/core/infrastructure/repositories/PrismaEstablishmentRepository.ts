@@ -30,6 +30,21 @@ export class PrismaEstablishmentRepository implements EstablishmentRepository {
   async findBySlug(slug: string): Promise<Establishment | null> {
     const data = await this.prisma.establishment.findUnique({
       where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        ownerId: true,
+        primaryColor: true,
+        secondaryColor: true,
+        phone: true,
+        bio: true,
+        logoUrl: true,
+        bannerUrl: true,
+        cnpj: true,
+        address: true,
+        createdAt: true,
+      },
     });
 
     if (!data) return null;
@@ -54,6 +69,21 @@ export class PrismaEstablishmentRepository implements EstablishmentRepository {
   async findByOwnerId(ownerId: string): Promise<Establishment | null> {
     const data = await this.prisma.establishment.findFirst({
       where: { ownerId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        ownerId: true,
+        primaryColor: true,
+        secondaryColor: true,
+        phone: true,
+        bio: true,
+        logoUrl: true,
+        bannerUrl: true,
+        cnpj: true,
+        address: true,
+        createdAt: true,
+      },
     });
 
     if (!data) return null;
@@ -76,7 +106,23 @@ export class PrismaEstablishmentRepository implements EstablishmentRepository {
   }
 
   async findAll(): Promise<Establishment[]> {
-    const data = await this.prisma.establishment.findMany();
+    const data = await this.prisma.establishment.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        ownerId: true,
+        primaryColor: true,
+        secondaryColor: true,
+        phone: true,
+        bio: true,
+        logoUrl: true,
+        bannerUrl: true,
+        cnpj: true,
+        address: true,
+        createdAt: true,
+      },
+    });
 
     return data.map(
       (item) =>

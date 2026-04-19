@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
-const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3010/api";
+const rawApiUrl =
+  process.env.INTERNAL_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:3010/api";
 const normalizedApiUrl = rawApiUrl.endsWith("/")
   ? rawApiUrl.slice(0, -1)
   : rawApiUrl;

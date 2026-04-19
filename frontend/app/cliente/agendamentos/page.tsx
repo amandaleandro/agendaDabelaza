@@ -16,6 +16,10 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
+import {
+  formatSaoPauloDate,
+  formatSaoPauloTime,
+} from '@/lib/saoPauloDateTime';
 
 const api = new ApiClient();
 
@@ -205,7 +209,7 @@ export default function ClienteAgendamentosPage() {
                         <Calendar className="h-4 w-4 text-slate-500" />
                         <span className="text-slate-400">Data:</span>
                         <span className="font-semibold">
-                          {appointmentDate.toLocaleDateString('pt-BR', {
+                          {formatSaoPauloDate(appointment.scheduledAt, {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric',
@@ -216,7 +220,7 @@ export default function ClienteAgendamentosPage() {
                         <Clock className="h-4 w-4 text-slate-500" />
                         <span className="text-slate-400">Horário:</span>
                         <span className="font-semibold">
-                          {appointmentDate.toLocaleTimeString('pt-BR', {
+                          {formatSaoPauloTime(appointment.scheduledAt, {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}

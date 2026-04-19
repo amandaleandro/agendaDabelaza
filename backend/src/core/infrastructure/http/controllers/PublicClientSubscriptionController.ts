@@ -30,6 +30,7 @@ export class PublicClientSubscriptionController {
     // Verificar se estabelecimento existe
     const establishment = await this.prisma.establishment.findUnique({
       where: { id: body.establishmentId },
+      select: { id: true },
     });
 
     if (!establishment) {

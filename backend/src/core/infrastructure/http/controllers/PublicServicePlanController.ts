@@ -11,6 +11,7 @@ export class PublicServicePlanController {
     // Buscar estabelecimento pelo slug
     const establishment = await this.prisma.establishment.findUnique({
       where: { slug },
+      select: { id: true },
     });
     if (!establishment) throw new NotFoundException('Estabelecimento não encontrado');
 

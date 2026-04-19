@@ -20,6 +20,12 @@ import {
   Loader2,
   Activity,
 } from 'lucide-react';
+import {
+  formatSaoPauloDate,
+  formatSaoPauloTime,
+  getNowSaoPauloDateKey,
+  getSaoPauloDateKey,
+} from '@/lib/saoPauloDateTime';
 
 const api = new ApiClient();
 
@@ -59,13 +65,13 @@ export default function AdminDashboard() {
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const date = new Date();
         date.setDate(date.getDate() - (6 - i));
-        return date.toISOString().split('T')[0];
+        return getSaoPauloDateKey(date);
       });
 
       const revenueByDay = last7Days.map((day) => {
         const dayPayments = paidPayments.filter((payment) => (payment.createdAt || '').startsWith(day));
         const amount = dayPayments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
-        const dayName = new Date(`${day}T00:00:00`).toLocaleDateString('pt-BR', { weekday: 'short' });
+        const dayName = formatSaoPauloDate(`${day}T12:00:00`, { weekday: 'short' });
         return { day: dayName, amount };
       });
 
@@ -341,10 +347,10 @@ export default function AdminDashboard() {
             ) : (
               stats.recentAppointments.map((appointment) => {
                 const displayDate = appointment.scheduledAt
-                  ? new Date(appointment.scheduledAt).toISOString().split('T')[0]
-                  : new Date().toISOString().split('T')[0];
+                  ? getSaoPauloDateKey(appointment.scheduledAt)
+                  : getNowSaoPauloDateKey();
                 const displayTime = appointment.scheduledAt
-                  ? new Date(appointment.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                  ? formatSaoPauloTime(appointment.scheduledAt, { hour: '2-digit', minute: '2-digit' })
                   : '';
                 const clientName = appointment.user?.name || 'Cliente';
 

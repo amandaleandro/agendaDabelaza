@@ -49,6 +49,7 @@ model Establishment {
   accentColor             String   @default("#EC4899") @map("accent_color")
   logoUrl                 String?  @map("logo_url")
   bannerUrl               String?  @map("banner_url")
+  galleryUrls             String[] @default([]) @map("gallery_urls")
   bio                     String?
   cnpj                    String?
   address                 String?

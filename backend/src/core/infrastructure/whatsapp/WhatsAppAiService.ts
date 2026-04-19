@@ -76,11 +76,13 @@ export class WhatsAppAiService {
               {
                 type: 'input_text',
                 text: [
-                  'Voce extrai intencao de mensagens de WhatsApp para agendamento de servicos.',
-                  'Retorne somente os campos do schema.',
-                  'Se nao souber algum campo, retorne string vazia.',
-                  'Use datas absolutas no formato AAAA-MM-DD e horarios HH:mm quando presentes.',
-                ].join(' '),
+                   'Voce extrai intencao de mensagens de WhatsApp para agendamento de servicos.',
+                   'Retorne somente os campos do schema.',
+                   'Se nao souber algum campo, retorne string vazia.',
+                   'Use datas absolutas no formato AAAA-MM-DD e horarios HH:mm quando presentes.',
+                   'Mensagens como "nao vou", "nao poderei", "nao consigo ir" indicam cancelamento.',
+                   'Mensagens como "nao vou, quero remarcar" ou "quero outro horario" indicam remarcacao.',
+                 ].join(' '),
               },
             ],
           },
@@ -249,12 +251,36 @@ export class WhatsAppAiService {
       intent = 'confirm_selection';
     }
 
-    if (normalized.includes('remarcar') || normalized.includes('mudar horario')) {
+    if (
+      normalized.includes('remarcar') ||
+      normalized.includes('mudar horario') ||
+      normalized.includes('reagendar') ||
+      normalized.includes('outro horario')
+    ) {
       intent = 'reschedule_appointment';
     }
 
-    if (normalized.includes('cancelar')) {
+    if (
+      normalized.includes('cancelar') ||
+      normalized.includes('nao vou') ||
+      normalized.includes('não vou') ||
+      normalized.includes('nao posso ir') ||
+      normalized.includes('não posso ir') ||
+      normalized.includes('nao poderei') ||
+      normalized.includes('não poderei') ||
+      normalized.includes('nao consigo ir') ||
+      normalized.includes('não consigo ir')
+    ) {
       intent = 'cancel_appointment';
+    }
+
+    if (
+      normalized.includes('nao vou mas quero remarcar') ||
+      normalized.includes('não vou mas quero remarcar') ||
+      normalized.includes('nao posso ir e quero remarcar') ||
+      normalized.includes('não posso ir e quero remarcar')
+    ) {
+      intent = 'reschedule_appointment';
     }
 
     if (normalized.includes('ajuda') || normalized.includes('menu')) {

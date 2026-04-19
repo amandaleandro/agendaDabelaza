@@ -27,7 +27,8 @@ export class ConsoleNotificationGateway implements NotificationGateway {
 
   async scheduleAppointmentReminders(
     _data: AppointmentNotificationData,
-  ): Promise<void> {
+  ): Promise<void | number> {
     console.log('[WHATSAPP] Reminder scheduling would run in production');
+    return 0;
   }
 }

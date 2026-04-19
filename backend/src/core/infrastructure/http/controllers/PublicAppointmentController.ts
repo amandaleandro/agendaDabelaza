@@ -14,6 +14,13 @@ import { PublicCreateAppointmentDto } from '../dtos/PublicCreateAppointmentDto';
 import { AvailableSlotsDto } from '../dtos/AvailableSlotsDto';
 import { AvailableDatesDto } from '../dtos/AvailableDatesDto';
 import { CreateAppointmentUseCase } from '../../../application/appointments/CreateAppointmentUseCase';
+import {
+  addDaysToDateKey,
+  getDayOfWeekFromDateKey,
+  getSaoPauloDayBoundsFromDateKey,
+  getSaoPauloTodayDateKey,
+  parseSaoPauloDateTime,
+} from '../../../shared/datetime/saoPaulo';
 
 @Controller('public/appointments')
 export class PublicAppointmentController {
@@ -33,6 +40,7 @@ export class PublicAppointmentController {
 
       const establishment = await this.prisma.establishment.findUnique({
         where: { slug: dto.establishmentSlug },
+        select: { id: true, name: true, slug: true },
       });
       if (!establishment)
         throw new NotFoundException('Establishment not found');
@@ -96,9 +104,7 @@ export class PublicAppointmentController {
       console.log('[PublicAppointmentController] Professionals', professionals.map(p => p.id));
 
       // Construir data/horário em tempo local para evitar ambiguidades de timezone
-      const [slotHour, slotMinute] = dto.slot.split(':').map((n) => parseInt(n, 10));
-      const scheduledAt = new Date(`${dto.date}T00:00:00`);
-      scheduledAt.setHours(slotHour || 0, slotMinute || 0, 0, 0);
+      const scheduledAt = parseSaoPauloDateTime(dto.date, dto.slot);
       if (isNaN(scheduledAt.getTime())) {
         throw new BadRequestException('Invalid date/slot');
       }
@@ -295,14 +301,14 @@ export class PublicAppointmentController {
     try {
       const establishment = await this.prisma.establishment.findUnique({
         where: { slug: dto.establishmentSlug },
+        select: { id: true },
       });
       if (!establishment) {
         throw new NotFoundException('Establishment not found');
       }
 
       // Validar data (usar horário local para evitar mudança de dia)
-      const date = new Date(dto.date + 'T00:00:00');
-      const dayOfWeek = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][date.getDay()];
+      const dayOfWeek = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][getDayOfWeekFromDateKey(dto.date)];
 
       // Obter todos os profissionais únicos
       const professionalIds = [...new Set(dto.services.map(s => s.professionalId))];
@@ -351,10 +357,7 @@ export class PublicAppointmentController {
       }, 0);
 
       // Buscar agendamentos existentes para todos os profissionais nesta data
-      const dayStart = new Date(date);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(date);
-      dayEnd.setHours(23, 59, 59, 999);
+      const { start: dayStart, end: dayEnd } = getSaoPauloDayBoundsFromDateKey(dto.date);
 
       const existingAppointments = await this.prisma.appointment.findMany({
         where: {
@@ -396,9 +399,11 @@ export class PublicAppointmentController {
             break;
           }
 
-          const slotStart = new Date(date);
+          const slotStart = parseSaoPauloDateTime(
+            dto.date,
+            `${String(Math.floor(currentTime / 60)).padStart(2, '0')}:${String(currentTime % 60).padStart(2, '0')}`,
+          );
           // Construir horário em tempo local
-          slotStart.setHours(Math.floor(currentTime / 60), currentTime % 60, 0, 0);
           const slotEnd = new Date(slotStart.getTime() + service.durationMinutes * 60 * 1000);
 
           // Verificar conflitos para este profissional específico
@@ -441,6 +446,7 @@ export class PublicAppointmentController {
     try {
       const establishment = await this.prisma.establishment.findUnique({
         where: { slug: dto.establishmentSlug },
+        select: { id: true },
       });
       if (!establishment) {
         throw new NotFoundException('Establishment not found');
@@ -448,8 +454,7 @@ export class PublicAppointmentController {
 
       const daysToCheck = dto.daysAhead || 14;
       const availableDates: string[] = [];
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const todayDateKey = getSaoPauloTodayDateKey();
 
       // Obter todos os profissionais únicos
       const professionalIds = [...new Set(dto.services.map(s => s.professionalId))];
@@ -479,9 +484,8 @@ export class PublicAppointmentController {
 
       // Verificar cada dia
       for (let i = 0; i < daysToCheck; i++) {
-        const checkDate = new Date(today);
-        checkDate.setDate(today.getDate() + i);
-        const dayOfWeek = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][checkDate.getDay()];
+        const checkDateKey = addDaysToDateKey(todayDateKey, i);
+        const dayOfWeek = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][getDayOfWeekFromDateKey(checkDateKey)];
 
         // Verificar se todos os profissionais trabalham neste dia
         const schedulesForDay = schedules.filter(s => s.dayOfWeek === dayOfWeek);
@@ -513,10 +517,7 @@ export class PublicAppointmentController {
         }
 
         // Buscar agendamentos existentes para este dia
-        const dayStart = new Date(checkDate);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(checkDate);
-        dayEnd.setHours(23, 59, 59, 999);
+        const { start: dayStart, end: dayEnd } = getSaoPauloDayBoundsFromDateKey(checkDateKey);
 
         const existingAppointments = await this.prisma.appointment.findMany({
           where: {
@@ -550,9 +551,11 @@ export class PublicAppointmentController {
               break;
             }
 
-            const slotStart = new Date(checkDate);
+            const slotStart = parseSaoPauloDateTime(
+              checkDateKey,
+              `${String(Math.floor(currentTime / 60)).padStart(2, '0')}:${String(currentTime % 60).padStart(2, '0')}`,
+            );
             // Construir horário em tempo local
-            slotStart.setHours(Math.floor(currentTime / 60), currentTime % 60, 0, 0);
             const slotEnd = new Date(slotStart.getTime() + service.durationMinutes * 60 * 1000);
 
             const hasConflict = existingAppointments.some(apt => {
@@ -577,7 +580,7 @@ export class PublicAppointmentController {
         }
 
         if (hasAvailableSlot) {
-          availableDates.push(checkDate.toISOString().split('T')[0]);
+          availableDates.push(checkDateKey);
         }
       }
 

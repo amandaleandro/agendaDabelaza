@@ -5,6 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { Calendar, Clock, User, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import { useEstablishmentTheme } from '@/hooks/useEstablishmentTheme';
 import { API_BASE_URL } from '@/config/api';
+import {
+  formatDateKeyLabel,
+  getNowSaoPauloDateKey,
+  toSaoPauloUtcIso,
+} from '@/lib/saoPauloDateTime';
 
 interface Establishment {
   id: string;
@@ -176,7 +181,7 @@ export default function AgendarPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             establishmentSlug: slug,
-            date: new Date().toISOString().split('T')[0], // Data inicial para buscar próximos 14 dias
+            date: getNowSaoPauloDateKey(), // Data inicial para buscar próximos 14 dias
             services: [{ serviceId: currentService, professionalId: resolvedProfessionalId }]
           })
         });
@@ -215,7 +220,7 @@ export default function AgendarPage() {
                 const timeSlots = await slotsResponse.json();
                 const now = new Date();
                 timeSlots.forEach((time: string) => {
-                  const slotDateTime = new Date(`${date}T${time}:00`);
+                  const slotDateTime = new Date(toSaoPauloUtcIso(date, time));
                   // Apenas horários futuros
                   if (slotDateTime.getTime() > now.getTime()) {
                     allSlots.push({ date, time });
@@ -311,9 +316,9 @@ export default function AgendarPage() {
       // Criar um agendamento para cada slot (data+hora)
       const appointmentPromises = Object.values(appointmentsBySlot).map(async (slotData) => {
         // Verificar se a data+hora está no futuro
-        const [year, month, day] = slotData.date.split('-').map(Number);
-        const [hour, minute] = slotData.slot.split(':').map(Number);
-        const appointmentDateTime = new Date(year, month - 1, day, hour, minute);
+        const appointmentDateTime = new Date(
+          toSaoPauloUtcIso(slotData.date, slotData.slot),
+        );
         const now = new Date();
         
         console.log('🕐 Verificando horário:');
@@ -632,7 +637,7 @@ export default function AgendarPage() {
                         <div>
                           <p className="text-white font-semibold">{service?.name}</p>
                           <p className="text-sm text-slate-400">
-                            {bookingMode === 'any' ? 'Profissional disponível' : prof?.name} • {new Date(item.date + 'T00:00:00').toLocaleDateString('pt-BR')} • {item.time}
+                            {bookingMode === 'any' ? 'Profissional disponível' : prof?.name} • {formatDateKeyLabel(item.date)} • {item.time}
                           </p>
                         </div>
                         <button
@@ -727,9 +732,9 @@ export default function AgendarPage() {
                       return acc;
                     }, {} as Record<string, string[]>)
                   ).map(([date, times]) => {
-                    const dateObj = new Date(date + 'T00:00:00');
+                    const dateObj = new Date(`${date}T12:00:00`);
                     const dayOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][dateObj.getDay()];
-                    const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+                    const formattedDate = formatDateKeyLabel(date, { day: '2-digit', month: 'long' });
                     
                     return (
                       <div key={date} className="space-y-3">
@@ -892,7 +897,7 @@ export default function AgendarPage() {
                             {bookingMode === 'any' ? 'Profissional disponível no horário' : `com ${prof?.name}`}
                           </div>
                           <div className="ml-4 text-sm text-slate-400">
-                            {new Date(item.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })} às {item.time}
+                            {formatDateKeyLabel(item.date, { weekday: 'long', day: '2-digit', month: 'long' })} às {item.time}
                           </div>
                         </div>
                       );

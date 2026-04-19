@@ -9,6 +9,12 @@ import Input from '@/components/Input';
 import Modal from '@/components/Modal';
 import { Appointment, Professional, Service, Schedule } from '@/types';
 import { ApiClient } from '@/services/api';
+import {
+  formatSaoPauloDateTime,
+  getNowSaoPauloDateKey,
+  getSaoPauloDateKey,
+  toSaoPauloUtcIso,
+} from '@/lib/saoPauloDateTime';
 
 const apiClient = new ApiClient();
 
@@ -151,7 +157,7 @@ export default function AppointmentsPage() {
       return;
     }
 
-    const scheduledAtIso = new Date(`${form.date}T${form.slot}:00`).toISOString();
+    const scheduledAtIso = toSaoPauloUtcIso(form.date, form.slot);
 
     try {
       setSubmitting(true);
@@ -267,19 +273,13 @@ export default function AppointmentsPage() {
 
       const sameDayAppointments = existing.filter((apt) => {
         if (!apt.scheduledAt) return false;
-        const d = new Date(apt.scheduledAt);
-        return (
-          d.getFullYear() === date.getFullYear() &&
-          d.getMonth() === date.getMonth() &&
-          d.getDate() === date.getDate() &&
-          apt.status === 'SCHEDULED'
-        );
+        return getSaoPauloDateKey(apt.scheduledAt) === dateStr && apt.status === 'SCHEDULED';
       });
 
       const slots: string[] = [];
       for (let start = startMin; start + duration <= endMin; start += duration) {
         const startTime = toTimeString(start);
-        const slotStart = new Date(`${dateStr}T${startTime}:00`);
+        const slotStart = new Date(toSaoPauloUtcIso(dateStr, startTime));
         const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
 
         if (slotEnd.getTime() <= now.getTime()) continue;
@@ -460,7 +460,7 @@ export default function AppointmentsPage() {
           <Input
             label="Data"
             type="date"
-            min={new Date().toISOString().split('T')[0]}
+            min={getNowSaoPauloDateKey()}
             value={form.date}
             onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
             required

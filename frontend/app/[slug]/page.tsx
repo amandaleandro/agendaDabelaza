@@ -13,7 +13,9 @@ interface Establishment {
   slug: string;
   bio?: string;
   phone?: string;
+  logoUrl?: string;
   bannerUrl?: string;
+  galleryUrls?: string[];
   address?: string;
   primaryColor?: string;
   secondaryColor?: string;
@@ -147,6 +149,17 @@ export default function LandingPage() {
 
         <div className="relative z-10 w-full px-6 sm:px-12 py-20 text-center">
           <div className="max-w-6xl mx-auto space-y-8">
+            {est.logoUrl && (
+              <div className="mx-auto flex justify-center">
+                <div className="rounded-[2rem] border border-white/20 bg-white/10 p-3 backdrop-blur-xl shadow-2xl">
+                  <img
+                    src={est.logoUrl}
+                    alt={`Logo de ${est.name}`}
+                    className="h-24 w-24 rounded-[1.4rem] object-cover sm:h-28 sm:w-28"
+                  />
+                </div>
+              </div>
+            )}
             {/* Badge */}
             <div
               className="inline-flex items-center gap-3 backdrop-blur-lg px-8 py-4 rounded-full shadow-xl animate-fade-in"
@@ -201,6 +214,46 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {est.galleryUrls && est.galleryUrls.length > 0 && (
+        <section className="w-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 py-32 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-20 space-y-6">
+              <div
+                className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6"
+                style={{ backgroundColor: hexToRgba(primary, 0.2) }}
+              >
+                <Sparkles className="w-10 h-10" style={{ color: primary }} />
+              </div>
+              <h2 className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-tight">
+                Nosso Espaço
+              </h2>
+              <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto">
+                Fotos reais do ambiente, estrutura e atendimentos do estabelecimento
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {est.galleryUrls.map((imageUrl, index) => (
+                <div
+                  key={`${imageUrl}-${index}`}
+                  className="overflow-hidden rounded-3xl border bg-slate-900/40 shadow-2xl"
+                  style={{
+                    borderColor: hexToRgba(primary, 0.2),
+                    boxShadow: `0 18px 40px ${hexToRgba(primary, 0.12)}`,
+                  }}
+                >
+                  <img
+                    src={imageUrl}
+                    alt={`${est.name} - foto ${index + 1}`}
+                    className="h-80 w-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Services Section - Full Width */}
       <section className="w-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 py-32 px-6">

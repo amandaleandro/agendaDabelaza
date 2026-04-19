@@ -36,6 +36,8 @@ type ConversationSession = {
   timePeriod?: 'morning' | 'afternoon' | 'evening';
 };
 
+type ReminderSyncScope = 'DAY' | 'WEEK' | 'MONTH' | 'ALL';
+
 @Injectable()
 export class WhatsAppBaileysService
   implements OnModuleInit, OnModuleDestroy
@@ -47,6 +49,12 @@ export class WhatsAppBaileysService
   );
   private readonly reminderIntervalMs = Number(
     process.env.WHATSAPP_REMINDER_INTERVAL_MS || 60000,
+  );
+  private readonly confirmationLeadHours = Number(
+    process.env.WHATSAPP_CONFIRMATION_LEAD_HOURS || 24,
+  );
+  private readonly confirmationDeadlineHours = Number(
+    process.env.WHATSAPP_CONFIRMATION_DEADLINE_HOURS || 12,
   );
   private readonly paymentHoldMinutes = Number(
     process.env.WHATSAPP_PAYMENT_HOLD_MINUTES || 15,
@@ -130,6 +138,26 @@ export class WhatsAppBaileysService
     await this.initializeConnection(true);
   }
 
+  async disconnect(): Promise<void> {
+    if (this.socket?.end) {
+      try {
+        this.socket.end(undefined);
+      } catch (error) {
+        this.logger.warn(
+          `Error closing WhatsApp socket: ${this.stringifyError(error)}`,
+        );
+      }
+    }
+
+    this.socket = null;
+    this.connectedJid = null;
+    this.lastQr = null;
+
+    if (fs.existsSync(this.authPath)) {
+      fs.rmSync(this.authPath, { recursive: true, force: true });
+    }
+  }
+
   async sendAppointmentConfirmation(
     data: AppointmentNotificationData,
   ): Promise<void> {
@@ -155,20 +183,43 @@ export class WhatsAppBaileysService
 
   async scheduleAppointmentReminders(
     data: AppointmentNotificationData,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!data.clientPhone) {
-      return;
+      return 0;
     }
 
     const recipientPhone = this.normalizePhone(data.clientPhone);
 
     const reminders = this.buildReminderSchedule(data.scheduledAt);
     if (!reminders.length) {
-      return;
+      return 0;
+    }
+
+    const existing = await this.prisma.whatsAppReminder.findMany({
+      where: {
+        appointmentId: data.appointmentId,
+        status: { not: 'CANCELLED' },
+      },
+      select: {
+        type: true,
+        sendAt: true,
+      },
+    });
+
+    const remindersToCreate = reminders.filter((reminder) => {
+      return !existing.some(
+        (item) =>
+          item.type === reminder.type &&
+          item.sendAt.getTime() === reminder.sendAt.getTime(),
+      );
+    });
+
+    if (!remindersToCreate.length) {
+      return 0;
     }
 
     await this.prisma.whatsAppReminder.createMany({
-      data: reminders.map((reminder) => ({
+      data: remindersToCreate.map((reminder) => ({
         appointmentId: data.appointmentId,
         type: reminder.type,
         recipientPhone,
@@ -176,6 +227,8 @@ export class WhatsAppBaileysService
       })),
       skipDuplicates: false,
     });
+
+    return remindersToCreate.length;
   }
 
   async processDueReminders(): Promise<{ processed: number }> {
@@ -264,6 +317,102 @@ export class WhatsAppBaileysService
     }
 
     return { processed };
+  }
+
+  async syncUpcomingReminders(
+    scope: ReminderSyncScope = 'MONTH',
+  ): Promise<{ scanned: number; created: number; scope: ReminderSyncScope }> {
+    const now = new Date();
+    const futureLimit = new Date(now);
+
+    if (scope === 'DAY') {
+      futureLimit.setDate(futureLimit.getDate() + 1);
+    } else if (scope === 'WEEK') {
+      futureLimit.setDate(futureLimit.getDate() + 7);
+    } else if (scope === 'MONTH') {
+      futureLimit.setMonth(futureLimit.getMonth() + 1);
+    } else {
+      futureLimit.setFullYear(futureLimit.getFullYear() + 1);
+    }
+
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        status: 'SCHEDULED',
+        scheduledAt: {
+          gte: now,
+          lte: futureLimit,
+        },
+      },
+      include: {
+        user: true,
+        establishment: true,
+        professional: true,
+        service: true,
+      },
+      orderBy: { scheduledAt: 'asc' },
+      take: 1000,
+    });
+
+    let created = 0;
+
+    for (const appointment of appointments) {
+      created += await this.scheduleAppointmentReminders({
+        appointmentId: appointment.id,
+        clientName: appointment.user.name,
+        clientEmail: appointment.user.email,
+        clientPhone: appointment.user.phone,
+        establishmentName: appointment.establishment.name,
+        serviceName: appointment.service.name,
+        professionalName: appointment.professional.name,
+        scheduledAt: appointment.scheduledAt,
+        price: appointment.price,
+        durationMinutes: appointment.durationMinutes,
+      });
+    }
+
+    return {
+      scanned: appointments.length,
+      created,
+      scope,
+    };
+  }
+
+  async listReminderHistory() {
+    const reminders = await this.prisma.whatsAppReminder.findMany({
+      include: {
+        appointment: {
+          include: {
+            user: true,
+            establishment: true,
+            professional: true,
+            service: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    return reminders.map((reminder) => ({
+      id: reminder.id,
+      type: reminder.type,
+      status: reminder.status,
+      recipientPhone: reminder.recipientPhone,
+      sendAt: reminder.sendAt,
+      sentAt: reminder.sentAt,
+      attempts: reminder.attempts,
+      errorMessage: reminder.errorMessage,
+      createdAt: reminder.createdAt,
+      appointment: {
+        id: reminder.appointment.id,
+        scheduledAt: reminder.appointment.scheduledAt,
+        status: reminder.appointment.status,
+        clientName: reminder.appointment.user.name,
+        establishmentName: reminder.appointment.establishment.name,
+        professionalName: reminder.appointment.professional.name,
+        serviceName: reminder.appointment.service.name,
+      },
+    }));
   }
 
   private async initializeConnection(forceReconnect = false): Promise<void> {
@@ -388,6 +537,20 @@ export class WhatsAppBaileysService
       return;
     }
 
+    if (
+      normalized === 'sim' ||
+      normalized === 'confirmado' ||
+      normalized === 'vou' ||
+      normalized === 'estarei ai' ||
+      normalized === 'estarei aí' ||
+      normalized === 'ok'
+    ) {
+      const confirmed = await this.tryConfirmNearestAppointment(senderPhone);
+      if (confirmed) {
+        return;
+      }
+    }
+
     if (normalized === 'meus agendamentos' || normalized === 'agendamentos') {
       await this.handleListAppointments(senderPhone);
       return;
@@ -445,13 +608,8 @@ export class WhatsAppBaileysService
     }
 
     if (intent.intent === 'cancel_appointment') {
-      if (intent.appointmentCode || session.appointmentCode) {
-        await this.handleCancel(
-          senderPhone,
-          intent.appointmentCode || session.appointmentCode || '',
-        );
-        return;
-      }
+      await this.handleNaturalCancel(senderPhone, session, intent);
+      return;
     }
 
     if (intent.intent === 'reschedule_appointment') {
@@ -505,6 +663,7 @@ export class WhatsAppBaileysService
     const establishment = session.establishmentSlug
       ? await this.prisma.establishment.findUnique({
           where: { slug: session.establishmentSlug },
+          select: { id: true, name: true, slug: true },
         })
       : null;
 
@@ -669,7 +828,10 @@ export class WhatsAppBaileysService
 
     const establishment = await this.prisma.establishment.findUnique({
       where: { slug: session.establishmentSlug },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
         services: {
           include: {
             professional: true,
@@ -723,10 +885,55 @@ export class WhatsAppBaileysService
       return;
     }
 
+    const nextAppointment = await this.findNearestFutureAppointmentForPhone(
+      senderPhone,
+    );
+    if (nextAppointment) {
+      session.appointmentCode = nextAppointment.id;
+      await this.sendTextMessage(
+        senderPhone,
+        [
+          `Perfeito! Mantive confirmado o agendamento ${nextAppointment.id}.`,
+          `Quando: ${this.formatDateTime(nextAppointment.scheduledAt)}`,
+        ].join('\n'),
+      );
+      return;
+    }
+
     await this.sendTextMessage(
       senderPhone,
       'Ainda nao tenho uma sugestao pronta para confirmar. Me diga o servico ou o agendamento que voce quer remarcar.',
     );
+  }
+
+  private async handleNaturalCancel(
+    senderPhone: string,
+    session: ConversationSession,
+    intent: WhatsAppAiIntent,
+  ): Promise<void> {
+    if (intent.appointmentCode) {
+      session.appointmentCode = intent.appointmentCode;
+    }
+
+    let appointmentId = session.appointmentCode;
+    if (!appointmentId) {
+      const nextAppointment = await this.findNearestFutureAppointmentForPhone(
+        senderPhone,
+      );
+
+      if (!nextAppointment) {
+        await this.sendTextMessage(
+          senderPhone,
+          'Nao achei agendamento futuro para cancelar. Se quiser, envie "meus agendamentos".',
+        );
+        return;
+      }
+
+      appointmentId = nextAppointment.id;
+      session.appointmentCode = nextAppointment.id;
+    }
+
+    await this.handleCancel(senderPhone, appointmentId);
   }
 
   private async handleNaturalReschedule(
@@ -949,6 +1156,13 @@ export class WhatsAppBaileysService
 
     const establishment = await this.prisma.establishment.findUnique({
       where: { slug },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        depositPercent: true,
+        mercadoPagoAccountId: true,
+      },
     });
     if (!establishment) {
       await this.sendTextMessage(senderPhone, 'Estabelecimento nao encontrado.');
@@ -1244,6 +1458,7 @@ export class WhatsAppBaileysService
       now: new Date(),
     });
 
+    await this.markConfirmationReminderStatus(appointmentId, 'DECLINED');
     await this.cancelPendingReminders(appointmentId);
 
     await this.sendTextMessage(
@@ -1326,6 +1541,7 @@ export class WhatsAppBaileysService
       },
     });
 
+    await this.markConfirmationReminderStatus(appointment.id, 'RESCHEDULED');
     await this.cancelPendingReminders(appointment.id);
     await this.scheduleAppointmentReminders({
       appointmentId: appointment.id,
@@ -1448,12 +1664,43 @@ export class WhatsAppBaileysService
     });
   }
 
+  private async markConfirmationReminderStatus(
+    appointmentId: string,
+    status: string,
+  ): Promise<void> {
+    await this.prisma.whatsAppReminder.updateMany({
+      where: {
+        appointmentId,
+        type: 'CONFIRMATION_24H',
+        status: { in: ['PENDING', 'PROCESSING', 'SENT'] },
+      },
+      data: {
+        status,
+      },
+    });
+  }
+
   private buildReminderSchedule(scheduledAt: Date) {
     const now = Date.now();
     const candidates: Array<{
       type: AppointmentReminderType;
       sendAt: Date;
     }> = [
+      {
+        type: 'REMINDER_30D' as AppointmentReminderType,
+        sendAt: new Date(scheduledAt.getTime() - 30 * 24 * 60 * 60 * 1000),
+      },
+      {
+        type: 'REMINDER_7D' as AppointmentReminderType,
+        sendAt: new Date(scheduledAt.getTime() - 7 * 24 * 60 * 60 * 1000),
+      },
+      {
+        type: 'CONFIRMATION_24H',
+        sendAt: new Date(
+          scheduledAt.getTime() -
+            this.confirmationLeadHours * 60 * 60 * 1000,
+        ),
+      },
       {
         type: 'REMINDER_24H',
         sendAt: new Date(scheduledAt.getTime() - 24 * 60 * 60 * 1000),
@@ -1472,9 +1719,15 @@ export class WhatsAppBaileysService
     data: AppointmentNotificationData,
   ): string {
     const header =
-      type === 'REMINDER_24H'
-        ? 'Lembrete do seu agendamento para amanha.'
-        : 'Lembrete do seu agendamento nas proximas horas.';
+      type === 'REMINDER_30D'
+        ? 'Lembrete do seu agendamento no proximo mes.'
+        : type === 'REMINDER_7D'
+          ? 'Lembrete do seu agendamento na proxima semana.'
+          : type === 'CONFIRMATION_24H'
+            ? 'Confirme sua presenca no agendamento de amanha.'
+          : type === 'REMINDER_24H'
+            ? 'Lembrete do seu agendamento para amanha.'
+            : 'Lembrete do seu agendamento nas proximas horas.';
 
     return [
       `Ola ${data.clientName}!`,
@@ -1486,8 +1739,77 @@ export class WhatsAppBaileysService
       `Quando: ${this.formatDateTime(data.scheduledAt)}`,
       `Codigo: ${data.appointmentId}`,
       '',
-      'Para remarcar, responda com: remarcar CODIGO | AAAA-MM-DD | HH:mm',
+      type === 'CONFIRMATION_24H'
+        ? 'Responda "sim" para confirmar presenca. Se nao puder comparecer, responda "nao vou" ou "remarcar CODIGO | AAAA-MM-DD | HH:mm".'
+        : 'Se nao puder comparecer, responda por aqui com "nao vou", "cancelar CODIGO" ou "remarcar CODIGO | AAAA-MM-DD | HH:mm".',
     ].join('\n');
+  }
+
+  private async findNearestFutureAppointmentForPhone(senderPhone: string) {
+    return this.prisma.appointment.findFirst({
+      where: {
+        user: {
+          phone: {
+            endsWith: this.normalizePhone(senderPhone).slice(-11),
+          },
+        },
+        status: 'SCHEDULED',
+        scheduledAt: { gte: new Date() },
+      },
+      orderBy: { scheduledAt: 'asc' },
+      include: {
+        user: true,
+        service: true,
+        professional: true,
+        establishment: true,
+      },
+    });
+  }
+
+  private async tryConfirmNearestAppointment(
+    senderPhone: string,
+  ): Promise<boolean> {
+    const appointment = await this.findNearestFutureAppointmentForPhone(
+      senderPhone,
+    );
+
+    if (!appointment) {
+      return false;
+    }
+
+    const confirmationReminder = await this.prisma.whatsAppReminder.findFirst({
+      where: {
+        appointmentId: appointment.id,
+        type: 'CONFIRMATION_24H',
+        status: { in: ['PENDING', 'PROCESSING', 'SENT'] },
+      },
+      orderBy: { sendAt: 'desc' },
+    });
+
+    if (!confirmationReminder) {
+      return false;
+    }
+
+    await this.prisma.whatsAppReminder.update({
+      where: { id: confirmationReminder.id },
+      data: {
+        status: 'CONFIRMED',
+        errorMessage: null,
+      },
+    });
+
+    const session = this.getSession(senderPhone);
+    session.appointmentCode = appointment.id;
+
+    await this.sendTextMessage(
+      senderPhone,
+      [
+        `Presenca confirmada para o agendamento ${appointment.id}.`,
+        `Quando: ${this.formatDateTime(appointment.scheduledAt)}`,
+      ].join('\n'),
+    );
+
+    return true;
   }
 
   private getSession(senderPhone: string): ConversationSession {
@@ -1643,6 +1965,7 @@ export class WhatsAppBaileysService
   ): Promise<string[]> {
     const establishment = await this.prisma.establishment.findUnique({
       where: { slug: establishmentSlug },
+      select: { id: true, slug: true },
     });
     if (!establishment) {
       return [];
@@ -1698,6 +2021,7 @@ export class WhatsAppBaileysService
   ): Promise<string[]> {
     const establishment = await this.prisma.establishment.findUnique({
       where: { slug: establishmentSlug },
+      select: { id: true },
     });
     if (!establishment) {
       return [];
@@ -1912,6 +2236,11 @@ export class WhatsAppBaileysService
           `Pending payment cleanup failed: ${this.stringifyError(error)}`,
         );
       });
+      void this.autoCancelUnconfirmedAppointments().catch((error) => {
+        this.logger.error(
+          `Unconfirmed appointment cleanup failed: ${this.stringifyError(error)}`,
+        );
+      });
       void this.processDueReminders().catch((error) => {
         this.logger.error(
           `Reminder worker failed: ${this.stringifyError(error)}`,
@@ -1958,6 +2287,64 @@ export class WhatsAppBaileysService
         updatedAt: new Date(),
       },
     });
+  }
+
+  private async autoCancelUnconfirmedAppointments(): Promise<void> {
+    const now = new Date();
+    const deadline = new Date(
+      now.getTime() + this.confirmationDeadlineHours * 60 * 60 * 1000,
+    );
+
+    const reminders = await this.prisma.whatsAppReminder.findMany({
+      where: {
+        type: 'CONFIRMATION_24H',
+        status: 'SENT',
+        appointment: {
+          status: 'SCHEDULED',
+          scheduledAt: {
+            gte: now,
+            lte: deadline,
+          },
+        },
+      },
+      include: {
+        appointment: {
+          include: {
+            user: true,
+          },
+        },
+      },
+      take: 50,
+    });
+
+    for (const reminder of reminders) {
+      await this.cancelAppointmentUseCase.execute({
+        appointmentId: reminder.appointmentId,
+        now,
+      });
+
+      await this.prisma.whatsAppReminder.update({
+        where: { id: reminder.id },
+        data: {
+          status: 'AUTO_CANCELLED',
+          errorMessage: 'Cancelled automatically because the customer did not confirm attendance in time.',
+        },
+      });
+
+      await this.cancelPendingReminders(reminder.appointmentId);
+
+      await this.sendTextMessage(
+        reminder.recipientPhone,
+        [
+          `O agendamento ${reminder.appointmentId} foi cancelado automaticamente por falta de confirmacao.`,
+          'Se quiser, responda aqui para remarcar.',
+        ].join('\n'),
+      ).catch((error) => {
+        this.logger.warn(
+          `Failed to send automatic cancellation notice: ${this.stringifyError(error)}`,
+        );
+      });
+    }
   }
 
   private extractText(message: any): string {

@@ -5,7 +5,9 @@
 
 const DEFAULT_API_URL = '/api';
 const DEFAULT_SERVER_API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010/api';
+  process.env.INTERNAL_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'http://localhost:3010/api';
 const DEFAULT_APP_URL = typeof window !== 'undefined' && window.location.origin 
   ? window.location.origin 
   : 'http://localhost:3002';

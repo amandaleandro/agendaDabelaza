@@ -114,7 +114,13 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
     // Buscar owner do establishment
     const establishment = await this.prisma.establishment.findUnique({
       where: { id: establishmentId },
-      include: { owner: true },
+      select: {
+        owner: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
 
     if (!establishment?.owner) return null;

@@ -27,7 +27,7 @@ export class WhatsAppNotificationGateway implements NotificationGateway {
 
   async scheduleAppointmentReminders(
     data: AppointmentNotificationData,
-  ): Promise<void> {
-    await this.whatsAppBaileysService.scheduleAppointmentReminders(data);
+  ): Promise<void | number> {
+    return this.whatsAppBaileysService.scheduleAppointmentReminders(data);
   }
 }

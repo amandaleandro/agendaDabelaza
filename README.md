@@ -213,6 +213,18 @@ Isto inicia:
 - **PostgreSQL** na porta 5432
 - **Redis** na porta 6379
 
+Para rodar o ambiente local inteiro em containers:
+
+```bash
+docker-compose -f docker-compose.dev.yml up -d --build
+```
+
+Isto inicia:
+- **Backend** na porta 3010
+- **Frontend** na porta 3003
+- **PostgreSQL** na porta 5432
+- **Redis** na porta 6379
+
 ---
 
 ## 🔧 Comandos Úteis

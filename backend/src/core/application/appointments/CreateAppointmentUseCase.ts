@@ -4,6 +4,11 @@ import { NotificationGateway } from '../../domain/gateways/NotificationGateway';
 import { AppointmentRepository } from '../../domain/repositories/AppointmentRepository';
 import { ScheduleRepository } from '../../domain/repositories/ScheduleRepository';
 import { ServiceRepository } from '../../domain/repositories/ServiceRepository';
+import {
+  getSaoPauloDayBounds,
+  getSaoPauloDayOfWeek,
+  getSaoPauloMinutes,
+} from '../../shared/datetime/saoPaulo';
 
 type CreateAppointmentInput = {
   id: string;
@@ -72,10 +77,9 @@ export class CreateAppointmentUseCase {
       throw new Error('Appointment outside professional schedule');
     }
 
-    const dayStart = new Date(appointmentStart);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(appointmentStart);
-    dayEnd.setHours(23, 59, 59, 999);
+    const { start: dayStart, end: dayEnd } = getSaoPauloDayBounds(
+      appointmentStart,
+    );
 
     const existing = await this.appointmentRepository.findScheduledBetween(
       input.professionalId,
@@ -150,7 +154,7 @@ export class CreateAppointmentUseCase {
   }
 
   private getDayOfWeek(date: Date): DayOfWeek {
-    const day = date.getDay();
+    const day = getSaoPauloDayOfWeek(date);
     return [
       DayOfWeek.SUNDAY,
       DayOfWeek.MONDAY,
@@ -175,10 +179,8 @@ export class CreateAppointmentUseCase {
 
     const startMinutes = toMinutes(start);
     const endMinutes = toMinutes(end);
-    const appointmentStartMinutes =
-      appointmentStart.getHours() * 60 + appointmentStart.getMinutes();
-    const appointmentEndMinutes =
-      appointmentEnd.getHours() * 60 + appointmentEnd.getMinutes();
+    const appointmentStartMinutes = getSaoPauloMinutes(appointmentStart);
+    const appointmentEndMinutes = getSaoPauloMinutes(appointmentEnd);
 
     return (
       appointmentStartMinutes >= startMinutes &&

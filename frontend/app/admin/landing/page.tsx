@@ -111,6 +111,7 @@ export default function AdminLandingPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const [landingUrl, setLandingUrl] = useState('');
   const [establishmentSlug, setEstablishmentSlug] = useState('');
   const [establishmentName, setEstablishmentName] = useState('');
@@ -159,6 +160,7 @@ export default function AdminLandingPage() {
               logo: data.logoUrl || prev.branding.logo,
               coverImage: data.bannerUrl || prev.branding.coverImage,
             },
+            gallery: Array.isArray(data.galleryUrls) ? data.galleryUrls : prev.gallery,
           }));
         }
       }
@@ -222,6 +224,7 @@ export default function AdminLandingPage() {
           accentColor: config.colors.accent,
           logoUrl: config.branding.logo,
           bannerUrl: config.branding.coverImage,
+          galleryUrls: config.gallery,
         }),
       });
 
@@ -320,6 +323,85 @@ export default function AdminLandingPage() {
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  const handleImageUploadRemote = async (
+    field: 'logo' | 'coverImage',
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!establishment?.id) {
+      alert('Estabelecimento não identificado.');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione uma imagem válida');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    try {
+      setUploadingMedia(true);
+      const upload =
+        field === 'logo'
+          ? await api.uploadLogo(file, establishment.id)
+          : await api.uploadBanner(file, establishment.id);
+
+      setConfig((prev) => ({
+        ...prev,
+        branding: {
+          ...prev.branding,
+          [field]: upload.url,
+        },
+      }));
+    } catch (error) {
+      console.error('Erro ao enviar imagem:', error);
+      alert('Não foi possível enviar a imagem.');
+    } finally {
+      setUploadingMedia(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleGalleryUploadRemote = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = event.target.files;
+    if (!files) return;
+    if (!establishment?.id) {
+      alert('Estabelecimento não identificado.');
+      return;
+    }
+
+    const validFiles = Array.from(files).filter(
+      (file) => file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024,
+    );
+
+    if (validFiles.length === 0) {
+      alert('Selecione imagens válidas de até 5MB.');
+      return;
+    }
+
+    try {
+      setUploadingMedia(true);
+      const uploads = await api.uploadGallery(validFiles, establishment.id);
+      setConfig((prev) => ({
+        ...prev,
+        gallery: [...prev.gallery, ...uploads.map((item) => item.url)],
+      }));
+    } catch (error) {
+      console.error('Erro ao enviar galeria:', error);
+      alert('Não foi possível enviar as fotos.');
+    } finally {
+      setUploadingMedia(false);
+      event.target.value = '';
+    }
   };
 
   const removeGalleryImage = (index: number) => {
@@ -536,7 +618,7 @@ export default function AdminLandingPage() {
                         type="file"
                         id="logo-upload"
                         accept="image/*"
-                        onChange={(e) => handleImageUpload('logo', e)}
+                        onChange={(e) => handleImageUploadRemote('logo', e)}
                         className="hidden"
                       />
                       <label
@@ -566,7 +648,7 @@ export default function AdminLandingPage() {
                         type="file"
                         id="cover-upload"
                         accept="image/*"
-                        onChange={(e) => handleImageUpload('coverImage', e)}
+                        onChange={(e) => handleImageUploadRemote('coverImage', e)}
                         className="hidden"
                       />
                       <label
@@ -847,7 +929,7 @@ export default function AdminLandingPage() {
                     id="gallery-upload"
                     accept="image/*"
                     multiple
-                    onChange={handleGalleryUpload}
+                    onChange={handleGalleryUploadRemote}
                     className="hidden"
                   />
                   <label htmlFor="gallery-upload" className="flex flex-col items-center gap-3 cursor-pointer">

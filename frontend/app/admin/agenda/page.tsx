@@ -14,6 +14,13 @@ import {
 } from 'lucide-react';
 import { ApiClient } from '@/services/api';
 import { Appointment, Professional, Client, Service } from '@/types';
+import {
+  formatCalendarDateKey,
+  formatSaoPauloTime,
+  getNowSaoPauloDateKey,
+  getSaoPauloDateKey,
+  toSaoPauloUtcIsoFromInput,
+} from '@/lib/saoPauloDateTime';
 
 const api = new ApiClient();
 
@@ -85,7 +92,7 @@ export default function AgendaPage() {
         establishmentId: '',
         professionalId: formData.professionalId,
         serviceId: formData.serviceId,
-        scheduledAt: new Date(formData.scheduledAt).toISOString(),
+        scheduledAt: toSaoPauloUtcIsoFromInput(formData.scheduledAt),
       });
 
       await loadData();
@@ -125,9 +132,9 @@ export default function AgendaPage() {
   };
 
   const getAppointmentsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatCalendarDateKey(date);
     return appointments.filter((appointment) => {
-      const appointmentDate = appointment.scheduledAt ? new Date(appointment.scheduledAt).toISOString().split('T')[0] : null;
+      const appointmentDate = appointment.scheduledAt ? getSaoPauloDateKey(appointment.scheduledAt) : null;
       const matchesDate = appointmentDate === dateStr;
       const matchesProfessional = !filterProfessional || appointment.professionalId === filterProfessional;
       return matchesDate && matchesProfessional;
@@ -145,7 +152,7 @@ export default function AgendaPage() {
   const openCreateModal = (date?: Date) => {
     if (date) {
       setSelectedDate(date);
-      const dateTimeStr = `${date.toISOString().split('T')[0]}T09:00`;
+      const dateTimeStr = `${formatCalendarDateKey(date)}T09:00`;
       setFormData((prev) => ({ ...prev, scheduledAt: dateTimeStr }));
     }
     setShowModal(true);
@@ -161,12 +168,12 @@ export default function AgendaPage() {
 
   const stats = {
     today: appointments.filter((appointment) => {
-      const appointmentDate = appointment.scheduledAt ? new Date(appointment.scheduledAt).toISOString().split('T')[0] : null;
-      const today = new Date().toISOString().split('T')[0];
+      const appointmentDate = appointment.scheduledAt ? getSaoPauloDateKey(appointment.scheduledAt) : null;
+      const today = getNowSaoPauloDateKey();
       return appointmentDate === today;
     }).length,
     thisWeek: appointments.filter((appointment) => {
-      const appointmentDateStr = appointment.scheduledAt ? new Date(appointment.scheduledAt).toISOString().split('T')[0] : null;
+      const appointmentDateStr = appointment.scheduledAt ? getSaoPauloDateKey(appointment.scheduledAt) : null;
       if (!appointmentDateStr) return false;
       const appointmentDate = new Date(appointmentDateStr);
       const today = new Date();
@@ -175,7 +182,7 @@ export default function AgendaPage() {
       return appointmentDate >= weekStart && appointmentDate <= weekEnd;
     }).length,
     thisMonth: appointments.filter((appointment) => {
-      const appointmentDateStr = appointment.scheduledAt ? new Date(appointment.scheduledAt).toISOString().split('T')[0] : null;
+      const appointmentDateStr = appointment.scheduledAt ? getSaoPauloDateKey(appointment.scheduledAt) : null;
       if (!appointmentDateStr) return false;
       const appointmentDate = new Date(appointmentDateStr);
       return appointmentDate.getMonth() === currentDate.getMonth() && appointmentDate.getFullYear() === currentDate.getFullYear();
@@ -338,7 +345,7 @@ export default function AgendaPage() {
                     {dayAppointments.slice(0, 2).map((appointment) => {
                       const clientName = appointment.user?.name || 'Cliente';
                       const time = appointment.scheduledAt
-                        ? new Date(appointment.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                        ? formatSaoPauloTime(appointment.scheduledAt, { hour: '2-digit', minute: '2-digit' })
                         : '';
 
                       return (

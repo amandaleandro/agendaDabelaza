@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsArray, IsOptional, IsString } from 'class-validator';
 
 export class UpdateEstablishmentLandingDto {
   @IsOptional()
@@ -32,4 +32,9 @@ export class UpdateEstablishmentLandingDto {
   @IsOptional()
   @IsString()
   bannerUrl?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  galleryUrls?: string[];
 }

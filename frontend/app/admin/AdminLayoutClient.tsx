@@ -15,6 +15,7 @@ import {
   Package,
   Briefcase,
   CreditCard,
+  MessageCircle,
   BarChart3,
   Crown,
   Settings,
@@ -49,6 +50,7 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
     { href: '/admin/assinatura-clientes', label: 'CrÃ©ditos Clientes', icon: Gift },
     { href: '/admin/pagamentos', label: 'Pagamentos', icon: CreditCard },
     { href: '/admin/agenda', label: 'Agenda', icon: Calendar },
+    { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
     { href: '/admin/relatorios', label: 'RelatÃ³rios', icon: BarChart3 },
     { href: '/admin/configuracoes', label: 'ConfiguraÃ§Ãµes', icon: Settings },
   ];
@@ -92,7 +94,7 @@ export function AdminLayoutClient({ children }: { children: ReactNode }) {
                     isActive ? 'bg-indigo-500/10 text-indigo-300' : 'hover:bg-slate-800/60 hover:text-white'
                   }`}
                 >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <Icon className="h-4 w-4 shrink-0" />
                   <span className="truncate">{item.label}</span>
                 </Link>
               );

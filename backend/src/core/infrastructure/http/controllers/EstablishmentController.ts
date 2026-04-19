@@ -12,6 +12,24 @@ export class EstablishmentController {
     private readonly prisma: PrismaService,
   ) {}
 
+  private async getGalleryUrls(establishmentId: string): Promise<string[]> {
+    try {
+      const rows = await this.prisma.$queryRaw<Array<{ gallery_urls: string[] | null }>>`
+        SELECT gallery_urls
+        FROM establishments
+        WHERE id = ${establishmentId}
+        LIMIT 1
+      `;
+
+      return rows[0]?.gallery_urls || [];
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('gallery_urls')) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
   async getMyEstablishment(@Req() req: any) {
@@ -31,7 +49,12 @@ export class EstablishmentController {
       primaryColor: establishment.primaryColor,
       secondaryColor: establishment.secondaryColor,
       accentColor: (establishment as any).accentColor,
+      logoUrl: (establishment as any).logoUrl,
+      bannerUrl: (establishment as any).bannerUrl,
+      galleryUrls: (establishment as any).galleryUrls || [],
       bio: establishment.bio,
+      address: (establishment as any).address,
+      phone: (establishment as any).phone,
       createdAt: establishment.createdAt?.toISOString(),
     };
   }
@@ -74,7 +97,10 @@ export class EstablishmentController {
       return { error: 'Establishment not found' };
     }
 
-    return establishment;
+    return {
+      ...establishment,
+      galleryUrls: await this.getGalleryUrls(id),
+    };
   }
 
   @Put(':id/landing-config')
@@ -93,9 +119,27 @@ export class EstablishmentController {
     if (dto.logoUrl !== undefined) data.logoUrl = dto.logoUrl;
     if (dto.bannerUrl !== undefined) data.bannerUrl = dto.bannerUrl;
 
-    const updated = await this.prisma.establishment.update({
+    await this.prisma.establishment.update({
       where: { id },
       data,
+    });
+
+    if (dto.galleryUrls !== undefined) {
+      try {
+        await this.prisma.$executeRaw`
+          UPDATE establishments
+          SET gallery_urls = ${dto.galleryUrls}::text[]
+          WHERE id = ${id}
+        `;
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes('gallery_urls')) {
+          throw error;
+        }
+      }
+    }
+
+    const updated = await this.prisma.establishment.findUnique({
+      where: { id },
       select: {
         id: true,
         name: true,
@@ -109,6 +153,9 @@ export class EstablishmentController {
       },
     });
 
-    return updated;
+    return {
+      ...updated,
+      galleryUrls: await this.getGalleryUrls(id),
+    };
   }
 }

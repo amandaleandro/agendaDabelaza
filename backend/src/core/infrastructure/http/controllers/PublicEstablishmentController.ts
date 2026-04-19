@@ -11,6 +11,24 @@ import { PrismaService } from '../../database/prisma/PrismaService';
 export class PublicEstablishmentController {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async getGalleryUrls(establishmentId: string): Promise<string[]> {
+    try {
+      const rows = await this.prisma.$queryRaw<Array<{ gallery_urls: string[] | null }>>`
+        SELECT gallery_urls
+        FROM establishments
+        WHERE id = ${establishmentId}
+        LIMIT 1
+      `;
+
+      return rows[0]?.gallery_urls || [];
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('gallery_urls')) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
   @Get(':slug')
   async getEstablishment(@Param('slug') slug: string) {
     const establishment = await this.prisma.establishment.findUnique({
@@ -27,19 +45,25 @@ export class PublicEstablishmentController {
         bannerUrl: true,
         bio: true,
         depositPercent: true,
+        address: true,
+        phone: true,
         createdAt: true,
       },
     });
 
     if (!establishment) throw new NotFoundException('Establishment not found');
 
-    return establishment;
+    return {
+      ...establishment,
+      galleryUrls: await this.getGalleryUrls(establishment.id),
+    };
   }
 
   @Get(':slug/services')
   async listServices(@Param('slug') slug: string) {
     const establishment = await this.prisma.establishment.findUnique({
       where: { slug },
+      select: { id: true },
     });
     if (!establishment) throw new NotFoundException('Establishment not found');
 
@@ -64,6 +88,7 @@ export class PublicEstablishmentController {
   async listProfessionals(@Param('slug') slug: string) {
     const establishment = await this.prisma.establishment.findUnique({
       where: { slug },
+      select: { id: true },
     });
     if (!establishment) throw new NotFoundException('Establishment not found');
 
@@ -89,6 +114,7 @@ export class PublicEstablishmentController {
   ) {
     const establishment = await this.prisma.establishment.findUnique({
       where: { slug },
+      select: { id: true },
     });
     if (!establishment) throw new NotFoundException('Establishment not found');
 
@@ -119,6 +145,7 @@ export class PublicEstablishmentController {
   ) {
     const establishment = await this.prisma.establishment.findUnique({
       where: { slug },
+      select: { id: true },
     });
     if (!establishment) throw new NotFoundException('Establishment not found');
 

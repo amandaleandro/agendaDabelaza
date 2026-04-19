@@ -5,6 +5,7 @@ import { Banknote, CheckCircle2, PackagePlus, PlusCircle, RefreshCw, Scissors, X
 import { ApiClient } from '@/services/api';
 import { Appointment, Product, Service } from '@/types';
 import { useAuth } from '@/store/auth';
+import { formatSaoPauloDateTime } from '@/lib/saoPauloDateTime';
 
 const api = new ApiClient();
 
@@ -206,7 +207,7 @@ export default function ProfissionalAtendimentosPage() {
                   <p className="text-sm text-slate-400">{appointment.service?.name || 'Serviço principal'}</p>
                 </div>
                 <div className="text-sm text-slate-300">
-                  {new Date(appointment.scheduledAt).toLocaleString('pt-BR', {
+                  {formatSaoPauloDateTime(appointment.scheduledAt, {
                     dateStyle: 'short',
                     timeStyle: 'short',
                   })}
